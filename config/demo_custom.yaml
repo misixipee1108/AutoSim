@@ -1,0 +1,18 @@
+mass: 1.0
+gravity: 9.81
+y0: 100.0
+v0: 0.0
+ground_y: 0.0
+drag_model: custom
+drag_params:
+  expression: "c1 * abs_v + c2 * abs_v * abs_v"
+  c1: 0.1
+  c2: 0.05
+t_max: 30.0
+probe_interval: 0.1
+dt: 0.01
+agent:
+  backend: rules
+iteration:
+  max_trials: 3
+  stop_on: recommend_next

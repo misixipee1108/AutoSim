@@ -1,0 +1,17 @@
+mass: 1.0
+gravity: 9.81
+y0: 100.0
+v0: 0.0
+ground_y: 0.0
+drag_model: quadratic
+drag_params:
+  c2: 0.5
+t_max: 30.0
+probe_interval: 0.1
+dt: 0.01
+agent:
+  backend: hybrid
+  probe_window: 10
+iteration:
+  max_trials: 5
+  stop_on: recommend_next
