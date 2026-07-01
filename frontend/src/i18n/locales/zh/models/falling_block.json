@@ -1,0 +1,105 @@
+{
+  "name": "带风阻下落块",
+  "category": "力学",
+  "description": "一维竖直自由下落，可配置空气阻力（线性、二次、多项式、自定义）。",
+  "tree": {
+    "body": "物体参数",
+    "drag": "阻力模型",
+    "integration": "积分设置",
+    "agent": "智能体设置"
+  },
+  "groups": {
+    "Body": "物体",
+    "Drag": "阻力",
+    "Integration": "积分",
+    "Agent": "智能体"
+  },
+  "params": {
+    "mass": {
+      "label": "质量",
+      "description": "物块质量。"
+    },
+    "gravity": {
+      "label": "重力加速度",
+      "description": "重力加速度。"
+    },
+    "y0": {
+      "label": "初始高度",
+      "description": "初始竖直位置。"
+    },
+    "v0": {
+      "label": "初速度",
+      "description": "初始竖直速度。"
+    },
+    "ground_y": {
+      "label": "地面高度",
+      "description": "地面接触高度。"
+    },
+    "drag_model": {
+      "label": "阻力模型",
+      "description": "阻力模型类型。",
+      "options": {
+        "linear": "线性",
+        "quadratic": "二次",
+        "polynomial": "多项式",
+        "custom": "自定义表达式"
+      },
+      "optionsHelp": {
+        "linear": "阻力 F ∝ v，低雷诺数时占主导。",
+        "quadratic": "阻力 F ∝ v²，中等速度下典型空气阻力。",
+        "polynomial": "v 的多项式组合，拟合经验阻力曲线。",
+        "custom": "用户自定义阻力表达式。"
+      }
+    },
+    "drag_params.c2": {
+      "label": "二次系数 c2",
+      "description": "二次阻力系数。"
+    },
+    "drag_params.c1": {
+      "label": "线性系数 c1",
+      "description": "线性阻力系数。"
+    },
+    "t_max": {
+      "label": "最大时间",
+      "description": "最大仿真时间。"
+    },
+    "probe_interval": {
+      "label": "探针间隔",
+      "description": "探针采样时间间隔。"
+    },
+    "dt": {
+      "label": "时间步长",
+      "description": "RK4 积分步长。"
+    },
+    "agent.backend": {
+      "label": "智能体后端",
+      "description": "智能体决策后端。",
+      "options": {
+        "rules": "仅规则",
+        "deepseek": "DeepSeek LLM",
+        "hybrid": "混合（LLM + 规则）"
+      },
+      "optionsHelp": {
+        "rules": "确定性规则智能体，无 LLM，行为可预测。",
+        "deepseek": "DeepSeek LLM 解读探针并给出决策建议。",
+        "hybrid": "LLM 提议动作，规则层校验并强制执行安全约束。"
+      }
+    },
+    "iteration.max_trials": {
+      "label": "最大试验次数",
+      "description": "迭代最大试验次数。"
+    }
+  },
+  "charts": {
+    "overview": "概览",
+    "trajectory": "轨迹",
+    "convergence": "能量漂移"
+  },
+  "probes": {
+    "energy_drift": "能量漂移",
+    "drag_force": "阻力",
+    "is_diverging": "发散",
+    "is_nan": "检测到 NaN",
+    "distance_to_ground": "距地面距离"
+  }
+}

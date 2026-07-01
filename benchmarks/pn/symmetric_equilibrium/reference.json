@@ -1,0 +1,15 @@
+{
+  "description": "Symmetric abrupt PN junction at equilibrium (Na=Nd=1e16 cm^-3)",
+  "metrics": {
+    "Vbi": 0.716,
+    "W": 7.9e-5,
+    "Emax": 33275
+  },
+  "tolerances": {
+    "Vbi": 0.05,
+    "W": 0.55,
+    "Emax": 0.25
+  },
+  "converged": true,
+  "source": "Sze & Ng (2012) Ch. 2 depletion approximation"
+}

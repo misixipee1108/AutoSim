@@ -1,0 +1,34 @@
+material: Si
+temperature_k: 300.0
+Na: 1.0e18
+Nd: 1.0e16
+Lp: 2.0e-4
+Ln: 2.0e-4
+Nx: 200
+Vapp: 0.0
+tol: 1.0e-4
+max_iter: 200
+damping: 0.5
+exp_clamp: 40.0
+rho_threshold_frac: 0.05
+optimization:
+  enabled: true
+  method: random
+  max_trials: 8
+  design_vars:
+    - { name: Na, min: 5.0e17, max: 2.0e18, type: number }
+    - { name: Nd, min: 5.0e15, max: 5.0e16, type: number }
+  objectives:
+    - { name: Emax, target: min, constraint: "< 5e5 V/cm" }
+    - { name: W_rho, target: range, min: 1.0e-5, max: 8.0e-5 }
+agent:
+  backend: rules
+iteration:
+  max_trials: 1
+sources:
+  - "Material Si@300K: Sze & Ng (2012); Green (1990) JAP 67, 2944"
+  - "Doping search bounds: Sze Ch. 2 typical asymmetric junction range"
+
+# --- Data sources ---
+# Material: Si @ 300K (Sze & Ng 2012; Green 1990)
+# Optimization bounds for Na, Nd: Sze Ch. 2 abrupt junction examples

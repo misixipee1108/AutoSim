@@ -1,0 +1,18 @@
+model_type: transient_dd
+material: Si
+Na: 1.0e18
+Nd: 1.0e16
+Nx: 80
+Vapp: 0.0
+tol: 1.0e-3
+transient:
+  enabled: true
+  t_max: 2.0e-10
+  dt: 5.0e-11
+  waveform: pulse
+  Vapp_initial: 0.0
+  Vapp_final: 0.3
+  pulse_width: 5.0e-11
+  pulse_start: 5.0e-11
+sources:
+  - "Transient pulse bias MVP"

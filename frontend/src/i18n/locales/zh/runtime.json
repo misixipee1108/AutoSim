@@ -1,0 +1,91 @@
+{
+  "status": {
+    "pending": "等待中",
+    "running": "运行中",
+    "completed": "已完成",
+    "completed_with_warning": "已完成（警告）",
+    "failed": "失败",
+    "early_stopped": "提前终止",
+    "idle": "空闲"
+  },
+  "solverStatus": {
+    "converged": "已收敛",
+    "max_iter_reached": "达到最大迭代",
+    "not_converged": "未收敛",
+    "failed_nan": "失败 (NaN)",
+    "failed_unphysical": "失败 (非物理)",
+    "stalled": "停滞",
+    "early_stopped": "提前终止",
+    "analytic_complete": "解析完成"
+  },
+  "validationStatus": {
+    "passed": "通过",
+    "failed": "未通过",
+    "unavailable": "不可用",
+    "numerical_only": "仅数值"
+  },
+  "runStatus": {
+    "completed": "已完成",
+    "completed_with_warning": "完成（有警告）",
+    "failed": "失败",
+    "early_stopped": "提前终止"
+  },
+  "convergenceCriterion": {
+    "residual": "残差",
+    "solution": "解步长",
+    "either": "任一",
+    "both": "两者"
+  },
+  "convergenceMet": {
+    "residual": "残差",
+    "solution": "解步长",
+    "both": "两者",
+    "none": "无"
+  },
+  "action": {
+    "continue": "继续",
+    "early_stop": "提前终止",
+    "adjust_params": "调整参数",
+    "refine_mesh": "细化网格",
+    "explain_failure": "解释失败",
+    "recommend_next": "推荐下一轮",
+    "mark_infeasible": "标记不可行"
+  },
+  "dimension": {
+    "0D": "零维",
+    "1D": "一维",
+    "2D": "二维",
+    "3D": "三维"
+  },
+  "metrics": {
+    "Vbi": "内建电势",
+    "W": "耗尽区宽度",
+    "Emax": "最大电场",
+    "Cj": "结电容",
+    "newton_iterations": "牛顿迭代次数",
+    "final_scaled_residual_norm": "最终缩放残差",
+    "final_scaled_delta_norm": "最终缩放步长",
+    "relative_tol": "相对容差",
+    "impact_time": "落地时间",
+    "impact_velocity": "落地速度",
+    "terminal_velocity": "终端速度",
+    "Vapp": "外加偏压",
+    "drag_force": "阻力"
+  },
+  "series": {
+    "potential": "电势 ψ(x)",
+    "electric_field": "电场 E(x)",
+    "electron_density": "电子浓度 n(x)",
+    "hole_density": "空穴浓度 p(x)",
+    "charge_density": "电荷密度 ρ(x)",
+    "position": "位置",
+    "velocity": "速度",
+    "acceleration": "加速度",
+    "residual": "牛顿残差",
+    "scaled_residual": "缩放残差",
+    "scaled_delta": "缩放步长",
+    "energy_drift": "能量漂移",
+    "W_vs_Vapp": "耗尽区宽度 vs Vapp",
+    "Cj_vs_Vapp": "结电容 vs Vapp"
+  }
+}

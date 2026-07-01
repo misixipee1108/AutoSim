@@ -1,0 +1,33 @@
+material: Si
+temperature_k: 300.0
+Na: 1.0e18
+Nd: 1.0e16
+Lp: 2.0e-4
+Ln: 2.0e-4
+Nx: 200
+Vapp: 0.0
+tol: 1.0e-4
+max_iter: 200
+damping: 0.5
+exp_clamp: 40.0
+rho_threshold_frac: 0.05
+bias_scan:
+  enabled: true
+  Vapp_min: -0.8
+  Vapp_max: 0.3
+  Vapp_step: 0.2
+agent:
+  backend: rules
+  probe_window: 10
+iteration:
+  max_trials: 1
+  stop_on: recommend_next
+sources:
+  - "Material Si@300K: Sze & Ng (2012); Green (1990) JAP 67, 2944"
+  - "Doping Na=1e18 Nd=1e16 cm^-3: Sze & Ng (2012) Ch. 2"
+  - "Bias sweep Vapp=-0.8 to 0.3 V: Sze Ch. 2 depletion width vs bias"
+
+# --- Data sources ---
+# Material: Si @ 300K (Sze & Ng 2012; Green 1990)
+# Doping: abrupt junction Na=1e18, Nd=1e16 cm^-3 (Sze Ch. 2)
+# Bias sweep: Vapp from -0.8 V to 0.3 V (depletion approximation benchmark)

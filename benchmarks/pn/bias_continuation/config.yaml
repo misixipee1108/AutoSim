@@ -1,0 +1,14 @@
+model_type: poisson
+material: Si
+Na: 1.0e18
+Nd: 1.0e16
+bias_scan:
+  enabled: true
+  Vapp_min: -0.8
+  Vapp_max: 0.0
+  Vapp_step: 0.2
+  warm_start: true
+  continuation: true
+Nx: 300
+sources:
+  - "Sze & Ng (2012) Ch. 2"

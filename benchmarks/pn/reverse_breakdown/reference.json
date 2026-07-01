@@ -1,0 +1,5 @@
+{
+  "converged": true,
+  "allow_partial_converged": true,
+  "description": "High reverse bias produces Emax and optional breakdown_risk"
+}

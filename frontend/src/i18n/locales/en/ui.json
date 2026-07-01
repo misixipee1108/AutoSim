@@ -1,0 +1,148 @@
+{
+  "shell": {
+    "model": "Model",
+    "agent": "Agent",
+    "liveApi": "Live API",
+    "run": "Run",
+    "stop": "Stop",
+    "langEn": "EN",
+    "langZh": "中文",
+    "import": "Import",
+    "exportConfig": "Export Config",
+    "exportResult": "Export Result",
+    "importFailed": "Import failed: invalid JSON",
+    "themeLight": "Day",
+    "themeDark": "Night"
+  },
+  "agentBackend": {
+    "rules": "Rules",
+    "deepseek": "DeepSeek",
+    "hybrid": "Hybrid",
+    "optionsHelp": {
+      "rules": "Deterministic rule-based agent; no LLM, predictable decisions.",
+      "deepseek": "DeepSeek LLM interprets probes and suggests actions.",
+      "hybrid": "LLM proposes actions; rules validate and enforce safety constraints."
+    }
+  },
+  "panel": {
+    "modelTree": "Model Tree",
+    "solverStatus": "Solver Status",
+    "agentDecisions": "Agent Decisions",
+    "probes": "Probes",
+    "log": "Log"
+  },
+  "form": {
+    "parameters": "Parameters",
+    "noParameters": "No parameters in this section."
+  },
+  "viewport": {
+    "loadingModel": "Loading model...",
+    "runToView": "Run a simulation to view results"
+  },
+  "overview": {
+    "model": "Model",
+    "category": "Category",
+    "status": "Status",
+    "runStatus": "Run Status",
+    "solverStatus": "Solver Status",
+    "validationStatus": "Validation Status",
+    "description": "Description",
+    "idle": "idle",
+    "keyMetrics": "Key Metrics",
+    "trialsSummary": "Trials Summary",
+    "validation": "Validation",
+    "convergence": "Convergence",
+    "configureHint": "Configure parameters in the left panel and click",
+    "configureHintEnd": ".",
+    "configPreview": "Current config preview:"
+  },
+  "table": {
+    "trial": "Trial",
+    "status": "Status",
+    "metric": "Metric",
+    "numeric": "Numeric",
+    "analytic": "Analytic",
+    "relError": "Rel. Error",
+    "pass": "Pass"
+  },
+  "solver": {
+    "model": "Model",
+    "runId": "Run ID",
+    "status": "Status",
+    "runStatus": "Run Status",
+    "solverStatus": "Solver Status",
+    "validationStatus": "Validation Status",
+    "running": "Running",
+    "trial": "Trial",
+    "steps": "Steps",
+    "yes": "Yes",
+    "no": "No",
+    "empty": "—",
+    "convergenceSection": "Convergence"
+  },
+  "convergence": {
+    "criterion": "Criterion",
+    "relativeTol": "Relative Tolerance",
+    "residualScale": "Residual Scale",
+    "solutionScale": "Solution Scale",
+    "finalScaledResidual": "Scaled Residual",
+    "finalScaledDelta": "Scaled Delta",
+    "criterionMet": "Criterion Met",
+    "warnings": "Warnings"
+  },
+  "agent": {
+    "noDecisions": "No agent decisions yet",
+    "rawPrefix": "raw:"
+  },
+  "probe": {
+    "noData": "No probe data",
+    "true": "true",
+    "false": "false",
+    "empty": "—"
+  },
+  "log": {
+    "noEntries": "No log entries",
+    "starting": "Starting simulation: {modelId}",
+    "agentDecision": "Agent: {action} — {reason}",
+    "complete": "Simulation complete",
+    "error": "Error: {error}",
+    "failedStart": "Failed to start: {message}",
+    "stopped": "Run stopped by user",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "count": "({count})"
+  },
+  "history": {
+    "title": "Run History",
+    "run": "Run",
+    "status": "Status",
+    "model": "Model",
+    "compare": "Compare",
+    "view": "View"
+  },
+  "task": {
+    "queue": "Task queue",
+    "running": "Running",
+    "idle": "Idle"
+  },
+  "chart": {
+    "noProfile": "No profile data",
+    "noTimeSeries": "No time series data",
+    "noConvergence": "No convergence data — run simulation to see live updates",
+    "noSweep": "No bias sweep data. Enable bias scan and run a simulation.",
+    "axisX": "x",
+    "axisStep": "Step",
+    "axisTime": "Time (s)",
+    "scaledNorm": "Scaled Norm"
+  },
+  "error": {
+    "renderTitle": "Render Error"
+  },
+  "unit": {
+    "placeholder": "value[{unit}]",
+    "invalid": "Invalid quantity or unit",
+    "dimensionMismatch": "Unit dimension does not match this field",
+    "outOfRange": "Value out of allowed range",
+    "canonicalHint": "canonical: {unit}"
+  }
+}

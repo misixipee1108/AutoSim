@@ -1,0 +1,16 @@
+model_type: transient_dd
+material: Si
+Na: 1.0e18
+Nd: 1.0e16
+Nx: 80
+Vapp: 0.0
+tol: 1.0e-3
+transient:
+  enabled: true
+  t_max: 2.0e-10
+  dt: 5.0e-11
+  waveform: step
+  Vapp_initial: 0.0
+  Vapp_final: 0.2
+sources:
+  - "Step bias transient MVP"

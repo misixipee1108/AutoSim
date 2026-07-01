@@ -1,0 +1,16 @@
+model_type: drift_diffusion
+material: Si
+Na: 1.0e16
+Nd: 1.0e16
+Nx: 150
+Vapp: 0.2
+tol: 5.0e-4
+bias_scan:
+  enabled: true
+  Vapp_min: -0.5
+  Vapp_max: 0.5
+  Vapp_step: 0.1
+  warm_start: true
+  continuation: true
+sources:
+  - "Sze & Ng (2012) Ch. 4 I-V via drift-diffusion Gummel"

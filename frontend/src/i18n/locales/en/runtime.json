@@ -1,0 +1,91 @@
+{
+  "status": {
+    "pending": "Pending",
+    "running": "Running",
+    "completed": "Completed",
+    "completed_with_warning": "Completed (Warning)",
+    "failed": "Failed",
+    "early_stopped": "Early Stopped",
+    "idle": "idle"
+  },
+  "solverStatus": {
+    "converged": "Converged",
+    "max_iter_reached": "Max Iterations Reached",
+    "not_converged": "Not Converged",
+    "failed_nan": "Failed (NaN)",
+    "failed_unphysical": "Failed (Unphysical)",
+    "stalled": "Stalled",
+    "early_stopped": "Early Stopped",
+    "analytic_complete": "Analytic Complete"
+  },
+  "validationStatus": {
+    "passed": "Passed",
+    "failed": "Failed",
+    "unavailable": "Unavailable",
+    "numerical_only": "Numerical Only"
+  },
+  "runStatus": {
+    "completed": "Completed",
+    "completed_with_warning": "Completed with Warning",
+    "failed": "Failed",
+    "early_stopped": "Early Stopped"
+  },
+  "convergenceCriterion": {
+    "residual": "Residual",
+    "solution": "Solution",
+    "either": "Either",
+    "both": "Both"
+  },
+  "convergenceMet": {
+    "residual": "Residual",
+    "solution": "Solution",
+    "both": "Both",
+    "none": "None"
+  },
+  "action": {
+    "continue": "Continue",
+    "early_stop": "Early Stop",
+    "adjust_params": "Adjust Params",
+    "refine_mesh": "Refine Mesh",
+    "explain_failure": "Explain Failure",
+    "recommend_next": "Recommend Next",
+    "mark_infeasible": "Mark Infeasible"
+  },
+  "dimension": {
+    "0D": "0D",
+    "1D": "1D",
+    "2D": "2D",
+    "3D": "3D"
+  },
+  "metrics": {
+    "Vbi": "Built-in Potential",
+    "W": "Depletion Width",
+    "Emax": "Max Electric Field",
+    "Cj": "Junction Capacitance",
+    "final_scaled_residual_norm": "Final Scaled Residual",
+    "final_scaled_delta_norm": "Final Scaled Delta",
+    "relative_tol": "Relative Tolerance",
+    "newton_iterations": "Newton Iterations",
+    "impact_time": "Impact Time",
+    "impact_velocity": "Impact Velocity",
+    "terminal_velocity": "Terminal Velocity",
+    "Vapp": "Applied Bias",
+    "drag_force": "Drag Force"
+  },
+  "series": {
+    "potential": "Potential ψ(x)",
+    "electric_field": "Electric Field E(x)",
+    "electron_density": "Electron n(x)",
+    "hole_density": "Hole p(x)",
+    "charge_density": "Charge ρ(x)",
+    "position": "Position",
+    "velocity": "Velocity",
+    "acceleration": "Acceleration",
+    "residual": "Newton Residual",
+    "scaled_residual": "Scaled Residual",
+    "scaled_delta": "Scaled Delta",
+    "energy_drift": "Energy Drift",
+    "W_vs_Vapp": "Depletion Width vs Vapp",
+    "Cj_vs_Vapp": "Junction Capacitance vs Vapp"
+  }
+}

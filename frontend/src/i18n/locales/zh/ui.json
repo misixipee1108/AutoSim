@@ -1,0 +1,148 @@
+{
+  "shell": {
+    "model": "模型",
+    "agent": "智能体",
+    "liveApi": "在线 API",
+    "run": "运行",
+    "stop": "停止",
+    "langEn": "EN",
+    "langZh": "中文",
+    "import": "导入",
+    "exportConfig": "导出配置",
+    "exportResult": "导出结果",
+    "importFailed": "导入失败：无效的 JSON",
+    "themeLight": "白天",
+    "themeDark": "夜晚"
+  },
+  "agentBackend": {
+    "rules": "规则",
+    "deepseek": "DeepSeek",
+    "hybrid": "混合",
+    "optionsHelp": {
+      "rules": "确定性规则智能体，无 LLM，行为可预测。",
+      "deepseek": "DeepSeek LLM 解读探针并给出决策建议。",
+      "hybrid": "LLM 提议动作，规则层校验并强制执行安全约束。"
+    }
+  },
+  "panel": {
+    "modelTree": "模型树",
+    "solverStatus": "求解器状态",
+    "agentDecisions": "智能体决策",
+    "probes": "探针",
+    "log": "日志"
+  },
+  "form": {
+    "parameters": "参数",
+    "noParameters": "此节点下无参数。"
+  },
+  "viewport": {
+    "loadingModel": "正在加载模型…",
+    "runToView": "运行仿真后查看结果"
+  },
+  "overview": {
+    "model": "模型",
+    "category": "类别",
+    "status": "状态",
+    "runStatus": "运行状态",
+    "solverStatus": "求解器状态",
+    "validationStatus": "验证状态",
+    "description": "描述",
+    "idle": "空闲",
+    "keyMetrics": "关键指标",
+    "trialsSummary": "试验摘要",
+    "validation": "验证",
+    "convergence": "收敛",
+    "configureHint": "在左侧面板配置参数，然后点击",
+    "configureHintEnd": "。",
+    "configPreview": "当前配置预览："
+  },
+  "table": {
+    "trial": "试验",
+    "status": "状态",
+    "metric": "指标",
+    "numeric": "数值解",
+    "analytic": "解析解",
+    "relError": "相对误差",
+    "pass": "通过"
+  },
+  "solver": {
+    "model": "模型",
+    "runId": "运行 ID",
+    "status": "状态",
+    "runStatus": "运行状态",
+    "solverStatus": "求解器状态",
+    "validationStatus": "验证状态",
+    "running": "运行中",
+    "trial": "试验",
+    "steps": "步数",
+    "yes": "是",
+    "no": "否",
+    "empty": "—",
+    "convergenceSection": "收敛"
+  },
+  "convergence": {
+    "criterion": "收敛准则",
+    "relativeTol": "相对容差",
+    "residualScale": "残差缩放",
+    "solutionScale": "解缩放",
+    "finalScaledResidual": "缩放残差",
+    "finalScaledDelta": "缩放步长",
+    "criterionMet": "满足准则",
+    "warnings": "警告"
+  },
+  "agent": {
+    "noDecisions": "暂无智能体决策",
+    "rawPrefix": "原始:"
+  },
+  "probe": {
+    "noData": "暂无探针数据",
+    "true": "是",
+    "false": "否",
+    "empty": "—"
+  },
+  "log": {
+    "noEntries": "暂无日志",
+    "starting": "开始仿真：{modelId}",
+    "agentDecision": "智能体：{action} — {reason}",
+    "complete": "仿真完成",
+    "error": "错误：{error}",
+    "failedStart": "启动失败：{message}",
+    "stopped": "用户停止运行",
+    "expand": "展开",
+    "collapse": "折叠",
+    "count": "（{count} 条）"
+  },
+  "history": {
+    "title": "运行历史",
+    "run": "运行",
+    "status": "状态",
+    "model": "模型",
+    "compare": "对比",
+    "view": "查看"
+  },
+  "task": {
+    "queue": "任务队列",
+    "running": "运行中",
+    "idle": "空闲"
+  },
+  "chart": {
+    "noProfile": "无分布曲线数据",
+    "noTimeSeries": "无时间序列数据",
+    "noConvergence": "无收敛数据 — 运行仿真后可实时查看",
+    "noSweep": "无偏压扫描数据。请启用偏压扫描并运行仿真。",
+    "axisX": "x",
+    "axisStep": "步数",
+    "axisTime": "时间 (s)",
+    "scaledNorm": "缩放范数"
+  },
+  "error": {
+    "renderTitle": "渲染错误"
+  },
+  "unit": {
+    "placeholder": "数值[{unit}]",
+    "invalid": "无效数值或单位",
+    "dimensionMismatch": "单位量纲与此字段不匹配",
+    "outOfRange": "数值超出允许范围",
+    "canonicalHint": "标准单位：{unit}"
+  }
+}

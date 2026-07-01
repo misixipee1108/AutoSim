@@ -1,0 +1,14 @@
+model_type: drift_diffusion
+material: Si
+Na: 1.0e16
+Nd: 1.0e16
+Nx: 120
+Vapp: 0.0
+tol: 5.0e-4
+recombination:
+  enabled: true
+  srh: true
+  tau_n: 1.0e-6
+  tau_p: 1.0e-6
+sources:
+  - "Sze & Ng (2012) Ch. 2 SRH recombination in DD"

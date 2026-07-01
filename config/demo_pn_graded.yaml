@@ -1,0 +1,18 @@
+model_type: poisson
+material: Si
+temperature_k: 300.0
+Na: 1.0e18
+Nd: 1.0e16
+doping:
+  type: linear_graded
+  Na: 1.0e18
+  Nd: 1.0e16
+  params:
+    width: 2.0e-5
+Lp: 2.0e-4
+Ln: 2.0e-4
+Nx: 400
+Vapp: 0.0
+tol: 1.0e-4
+sources:
+  - "Sze & Ng (2012) Ch. 2 graded junction approximation"

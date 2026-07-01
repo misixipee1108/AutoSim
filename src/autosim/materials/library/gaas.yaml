@@ -1,0 +1,23 @@
+gaas:
+  name: GaAs
+  eps_r: 12.9
+  eps_r_source: "Sze & Ng (2012) Physics of Semiconductor Devices 4th ed. Ch.1"
+  ni_model: green1990
+  ni_ref_T: 300.0
+  ni_ref_value: 2.1e6
+  temperature_range_k: [100, 500]
+  Eg_eV: 1.42
+  Eg_source: "Sze & Ng (2012) Ch.1 Table 1-1"
+  mu_n_cm2_Vs: 8500
+  mu_p_cm2_Vs: 400
+  mobility_source: "Sze & Ng (2012) Ch.1 @ 300K low-field"
+  Nc_cm3: 4.7e17
+  Nv_cm3: 7.0e18
+  chi_eV: 4.07
+  B_cm3_s: 1.0e-10
+  Cn_cm6_s: 1.0e-30
+  Cp_cm6_s: 1.0e-31
+  tau_n_s: 1.0e-9
+  tau_p_s: 1.0e-8
+  band_source: "Sze & Ng (2012) Ch.1"
+  source: "Sze & Ng (2012) Ch.1; Green (1990) ni model adapted"

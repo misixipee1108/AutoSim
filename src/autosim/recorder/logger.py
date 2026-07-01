@@ -45,6 +45,13 @@ class RunRecorder:
             for decision in result.decisions:
                 f.write(decision.model_dump_json() + "\n")
 
+        with open(trial_dir / "trajectory.json", "w", encoding="utf-8") as f:
+            json.dump(
+                [p.model_dump(mode="json") for p in result.trajectory],
+                f,
+                indent=2,
+            )
+
     def save_summary(self, results: list[TrialResult]) -> Path:
         summary_path = self.run_dir / "trials_summary.csv"
         fieldnames = [

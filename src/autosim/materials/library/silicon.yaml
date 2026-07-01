@@ -1,0 +1,37 @@
+silicon:
+  name: Si
+  eps_r: 11.7
+  eps_r_source: "Sze & Ng (2012) Physics of Semiconductor Devices 4th ed. Ch.1"
+  ni_model: green1990
+  ni_ref_T: 300.0
+  ni_ref_value: 1.0e10
+  temperature_range_k: [100, 500]
+  Eg_eV: 1.12
+  Eg_source: "Sze & Ng (2012) Ch.1 Table 1-1"
+  mu_n_cm2_Vs: 1350
+  mu_p_cm2_Vs: 480
+  mobility_source: "Sze & Ng (2012) Ch.1 Table 1-1 @ 300K"
+  Nc_cm3: 2.8e19
+  Nv_cm3: 1.04e19
+  chi_eV: 4.05
+  band_source: "Sze & Ng (2012) Ch.1"
+  source: "Sze & Ng (2012); Green (1990) JAP 67, 2944; NIST CODATA 2018"
+
+germanium:
+  name: Ge
+  eps_r: 16.0
+  eps_r_source: "Sze & Ng (2012) Ch.1"
+  ni_model: green1990_ge
+  ni_ref_T: 300.0
+  ni_ref_value: 2.4e13
+  temperature_range_k: [100, 500]
+  Eg_eV: 0.66
+  Eg_source: "Sze & Ng (2012) Ch.1"
+  mu_n_cm2_Vs: 3900
+  mu_p_cm2_Vs: 1900
+  mobility_source: "Sze & Ng (2012) Ch.1 @ 300K"
+  Nc_cm3: 1.02e19
+  Nv_cm3: 5.64e18
+  chi_eV: 4.0
+  band_source: "Sze & Ng (2012) Ch.1"
+  source: "Sze & Ng (2012) Ch.1; Green (1990) intrinsic model adapted"

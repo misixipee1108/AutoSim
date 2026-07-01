@@ -1,0 +1,12 @@
+{
+  "description": "Depletion analytic mode",
+  "metrics": {
+    "Vbi": 0.835,
+    "W": 3.3e-5
+  },
+  "tolerances": {
+    "Vbi": 0.02,
+    "W": 0.15
+  },
+  "converged": true
+}

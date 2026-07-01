@@ -1,0 +1,6 @@
+{
+  "converged": true,
+  "allow_partial_converged": true,
+  "tolerances": {},
+  "description": "Bias sweep with warm start; at least final point converges"
+}

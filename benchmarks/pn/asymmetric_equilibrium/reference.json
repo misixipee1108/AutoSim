@@ -1,0 +1,15 @@
+{
+  "description": "Asymmetric abrupt PN (Na=1e18, Nd=1e16)",
+  "metrics": {
+    "Vbi": 0.835,
+    "W": 3.3e-5,
+    "Emax": 50568
+  },
+  "tolerances": {
+    "Vbi": 0.03,
+    "W": 0.45,
+    "Emax": 0.35
+  },
+  "converged": true,
+  "source": "Sze & Ng (2012) Ch. 2"
+}

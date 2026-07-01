@@ -1,0 +1,10 @@
+{
+  "metrics": {
+    "Emax": 75000
+  },
+  "tolerances": {
+    "Emax": 0.50
+  },
+  "converged": true,
+  "allow_partial_converged": true
+}

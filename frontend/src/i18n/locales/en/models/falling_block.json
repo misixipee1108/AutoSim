@@ -1,0 +1,19 @@
+{
+  "params": {
+    "drag_model": {
+      "optionsHelp": {
+        "linear": "Drag force F ∝ v; dominant at low Reynolds number.",
+        "quadratic": "Drag force F ∝ v²; typical for air resistance at moderate speed.",
+        "polynomial": "Mixed polynomial in v; fits empirical drag curves.",
+        "custom": "User-supplied expression for drag as a function of state."
+      }
+    },
+    "agent.backend": {
+      "optionsHelp": {
+        "rules": "Deterministic rule-based agent; no LLM, predictable decisions.",
+        "deepseek": "DeepSeek LLM interprets probes and suggests actions.",
+        "hybrid": "LLM proposes actions; rules validate and enforce safety constraints."
+      }
+    }
+  }
+}

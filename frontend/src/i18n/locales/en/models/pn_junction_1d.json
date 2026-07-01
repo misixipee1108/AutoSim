@@ -1,0 +1,51 @@
+{
+  "params": {
+    "model_type": {
+      "optionsHelp": {
+        "poisson": "Self-consistent nonlinear Poisson; computes ψ(x) with Boltzmann carrier statistics.",
+        "depletion": "Depletion approximation; fast analytic-like solve, ignores mobile carriers in bulk.",
+        "drift_diffusion": "Drift–diffusion via Gummel iteration; couples Poisson with carrier continuity."
+      }
+    },
+    "material": {
+      "optionsHelp": {
+        "Si": "Silicon: Eg ≈ 1.12 eV at 300 K; default for most PN demos.",
+        "Ge": "Germanium: smaller bandgap; higher intrinsic carrier density at room temperature."
+      }
+    },
+    "doping.type": {
+      "optionsHelp": {
+        "abrupt": "Step junction: constant Na on P-side, Nd on N-side.",
+        "linear_graded": "Linear grading of net doping across the transition region.",
+        "gaussian": "Gaussian doping profile centered at the metallurgical junction.",
+        "piecewise": "User-defined piecewise or tabulated doping profile."
+      }
+    },
+    "solver.method": {
+      "optionsHelp": {
+        "newton": "Full Newton steps; fast near the solution but may diverge with poor initial guesses.",
+        "damped_newton": "Damped Newton; scales updates for stability in strongly nonlinear regions.",
+        "newton_line_search": "Newton with line search; picks step size to reduce residual each iteration."
+      }
+    },
+    "solver.linear_backend": {
+      "optionsHelp": {
+        "direct": "Sparse direct LU; robust for 1D meshes up to a few thousand nodes.",
+        "iterative": "Iterative linear solver; useful for very large systems (future 2D/3D)."
+      }
+    },
+    "agent.backend": {
+      "optionsHelp": {
+        "rules": "Deterministic rule-based agent; no LLM, predictable decisions.",
+        "deepseek": "DeepSeek LLM interprets probes and suggests actions.",
+        "hybrid": "LLM proposes actions; rules validate and enforce safety constraints."
+      }
+    },
+    "iteration.stop_on": {
+      "optionsHelp": {
+        "recommend_next": "Stop when the agent emits a recommend_next decision.",
+        "never": "Run all trials regardless of agent recommendations."
+      }
+    }
+  }
+}

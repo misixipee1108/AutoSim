@@ -1,0 +1,10 @@
+model_type: drift_diffusion
+material: Si
+Na: 1.0e16
+Nd: 1.0e16
+Nx: 200
+Vapp: 0.3
+tol: 5.0e-4
+max_iter: 200
+sources:
+  - "Sze & Ng (2012) Ch. 4 drift-diffusion MVP"

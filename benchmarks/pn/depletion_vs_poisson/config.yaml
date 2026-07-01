@@ -1,0 +1,11 @@
+model_type: depletion
+material: Si
+temperature_k: 300.0
+Na: 1.0e18
+Nd: 1.0e16
+Lp: 2.0e-4
+Ln: 2.0e-4
+Nx: 200
+Vapp: 0.0
+sources:
+  - "Sze & Ng (2012) Ch. 2"

@@ -1,0 +1,973 @@
+{
+  "model_id": "pn_junction_1d",
+  "model_name": "1D PN Junction",
+  "category": "Semiconductor",
+  "dimension": "1D",
+  "description": "1D PN junction: Poisson, depletion approximation, or drift-diffusion with configurable doping, materials, and nonlinear solvers.",
+  "parameters": [
+    {
+      "name": "model_type",
+      "label": "Physics Model",
+      "type": "select",
+      "unit": "",
+      "default": "poisson",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Physics",
+      "description": "Governing equations to solve.",
+      "options": [
+        {
+          "value": "poisson",
+          "label": "Nonlinear Poisson"
+        },
+        {
+          "value": "depletion",
+          "label": "Depletion Approximation"
+        },
+        {
+          "value": "drift_diffusion",
+          "label": "Drift-Diffusion (Gummel)"
+        }
+      ]
+    },
+    {
+      "name": "material",
+      "label": "Material",
+      "type": "select",
+      "unit": "",
+      "default": "Si",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Material",
+      "description": "Semiconductor material.",
+      "options": [
+        {
+          "value": "Ge",
+          "label": "Germanium (Ge)"
+        },
+        {
+          "value": "Si",
+          "label": "Silicon (Si)"
+        }
+      ]
+    },
+    {
+      "name": "temperature_k",
+      "label": "Temperature",
+      "type": "number",
+      "unit": "K",
+      "default": 300.0,
+      "min": 100.0,
+      "max": 500.0,
+      "step": null,
+      "group": "Material",
+      "description": "Lattice temperature.",
+      "options": null
+    },
+    {
+      "name": "doping.type",
+      "label": "Doping Profile",
+      "type": "select",
+      "unit": "",
+      "default": "abrupt",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Doping",
+      "description": "Junction doping distribution model.",
+      "options": [
+        {
+          "value": "abrupt",
+          "label": "Abrupt (step)"
+        },
+        {
+          "value": "linear_graded",
+          "label": "Linear Graded"
+        },
+        {
+          "value": "gaussian",
+          "label": "Gaussian"
+        },
+        {
+          "value": "piecewise",
+          "label": "Piecewise / Table"
+        }
+      ]
+    },
+    {
+      "name": "Na",
+      "label": "Acceptor Concentration",
+      "type": "number",
+      "unit": "cm\u207b\u00b3",
+      "default": 1e+18,
+      "min": 100000000000000.0,
+      "max": 1e+20,
+      "step": null,
+      "group": "Doping",
+      "description": "P-side acceptor concentration.",
+      "options": null
+    },
+    {
+      "name": "Nd",
+      "label": "Donor Concentration",
+      "type": "number",
+      "unit": "cm\u207b\u00b3",
+      "default": 1e+16,
+      "min": 100000000000000.0,
+      "max": 1e+20,
+      "step": null,
+      "group": "Doping",
+      "description": "N-side donor concentration.",
+      "options": null
+    },
+    {
+      "name": "Lp",
+      "label": "P-side Length",
+      "type": "number",
+      "unit": "cm",
+      "default": 0.0002,
+      "min": 1e-06,
+      "max": 0.01,
+      "step": null,
+      "group": "Geometry",
+      "description": "P-region length.",
+      "options": null
+    },
+    {
+      "name": "Ln",
+      "label": "N-side Length",
+      "type": "number",
+      "unit": "cm",
+      "default": 0.0002,
+      "min": 1e-06,
+      "max": 0.01,
+      "step": null,
+      "group": "Geometry",
+      "description": "N-region length.",
+      "options": null
+    },
+    {
+      "name": "Nx",
+      "label": "Grid Points",
+      "type": "integer",
+      "unit": "",
+      "default": 400,
+      "min": 20.0,
+      "max": 5000.0,
+      "step": null,
+      "group": "Mesh",
+      "description": "Number of mesh nodes.",
+      "options": null
+    },
+    {
+      "name": "junction_refinement.enabled",
+      "label": "Junction Refinement",
+      "type": "boolean",
+      "unit": "",
+      "default": false,
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Mesh",
+      "description": "Refine mesh near the junction.",
+      "options": null
+    },
+    {
+      "name": "junction_refinement.ratio",
+      "label": "Refinement Ratio",
+      "type": "number",
+      "unit": "",
+      "default": 3.0,
+      "min": 1.1,
+      "max": 10.0,
+      "step": null,
+      "group": "Mesh",
+      "description": "Junction-to-bulk cell size ratio.",
+      "options": null
+    },
+    {
+      "name": "junction_refinement.width_frac",
+      "label": "Junction Zone Fraction",
+      "type": "number",
+      "unit": "",
+      "default": 0.1,
+      "min": 0.01,
+      "max": 0.5,
+      "step": null,
+      "group": "Mesh",
+      "description": "Fraction of each side refined near junction.",
+      "options": null
+    },
+    {
+      "name": "Vapp",
+      "label": "Applied Bias",
+      "type": "number",
+      "unit": "V",
+      "default": 0.0,
+      "min": -5.0,
+      "max": 5.0,
+      "step": null,
+      "group": "Bias",
+      "description": "Applied voltage (P-side relative to N-side).",
+      "options": null
+    },
+    {
+      "name": "bias_scan.enabled",
+      "label": "Enable Bias Sweep",
+      "type": "boolean",
+      "unit": "",
+      "default": false,
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Bias",
+      "description": "Sweep applied bias over a range.",
+      "options": null
+    },
+    {
+      "name": "bias_scan.Vapp_min",
+      "label": "Sweep Vapp Min",
+      "type": "number",
+      "unit": "V",
+      "default": -1.0,
+      "min": -5.0,
+      "max": 5.0,
+      "step": null,
+      "group": "Bias",
+      "description": "Minimum sweep bias.",
+      "options": null
+    },
+    {
+      "name": "bias_scan.Vapp_max",
+      "label": "Sweep Vapp Max",
+      "type": "number",
+      "unit": "V",
+      "default": 0.5,
+      "min": -5.0,
+      "max": 5.0,
+      "step": null,
+      "group": "Bias",
+      "description": "Maximum sweep bias.",
+      "options": null
+    },
+    {
+      "name": "bias_scan.Vapp_step",
+      "label": "Sweep Step",
+      "type": "number",
+      "unit": "V",
+      "default": 0.1,
+      "min": 0.01,
+      "max": 2.0,
+      "step": null,
+      "group": "Bias",
+      "description": "Bias sweep step size.",
+      "options": null
+    },
+    {
+      "name": "bias_scan.warm_start",
+      "label": "Warm Start Between Steps",
+      "type": "boolean",
+      "unit": "",
+      "default": true,
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Bias",
+      "description": "Use previous bias \u03c8 as initial guess.",
+      "options": null
+    },
+    {
+      "name": "bias_scan.continuation",
+      "label": "Bias Continuation",
+      "type": "boolean",
+      "unit": "",
+      "default": true,
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Bias",
+      "description": "Retry with halved step on convergence failure.",
+      "options": null
+    },
+    {
+      "name": "solver.method",
+      "label": "Nonlinear Solver",
+      "type": "select",
+      "unit": "",
+      "default": "damped_newton",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Solver",
+      "description": "Newton iteration strategy.",
+      "options": [
+        {
+          "value": "newton",
+          "label": "Newton (full step)"
+        },
+        {
+          "value": "damped_newton",
+          "label": "Damped Newton"
+        },
+        {
+          "value": "newton_line_search",
+          "label": "Newton + Line Search"
+        }
+      ]
+    },
+    {
+      "name": "solver.linear_backend",
+      "label": "Linear Backend",
+      "type": "select",
+      "unit": "",
+      "default": "direct",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Solver",
+      "description": "Linear system solver.",
+      "options": [
+        {
+          "value": "direct",
+          "label": "Direct (sparse LU)"
+        },
+        {
+          "value": "iterative",
+          "label": "Iterative"
+        }
+      ]
+    },
+    {
+      "name": "solver.adaptive_damping",
+      "label": "Adaptive Damping",
+      "type": "boolean",
+      "unit": "",
+      "default": false,
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Solver",
+      "description": "Adjust damping from residual reduction rate.",
+      "options": null
+    },
+    {
+      "name": "solver.convergence.criterion",
+      "label": "Convergence Criterion",
+      "type": "select",
+      "unit": "",
+      "default": "both",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Solver",
+      "description": "Require scaled residual, scaled solution step, either, or both.",
+      "options": [
+        {
+          "value": "residual",
+          "label": "Residual only"
+        },
+        {
+          "value": "solution",
+          "label": "Solution step only"
+        },
+        {
+          "value": "either",
+          "label": "Either criterion"
+        },
+        {
+          "value": "both",
+          "label": "Both criteria (COMSOL-style)"
+        }
+      ]
+    },
+    {
+      "name": "solver.convergence.relative_tol",
+      "label": "Relative Tolerance",
+      "type": "number",
+      "unit": "",
+      "default": 0.0001,
+      "min": 1e-10,
+      "max": 0.01,
+      "step": null,
+      "group": "Solver",
+      "description": "Scaled residual and solution tolerance.",
+      "options": null
+    },
+    {
+      "name": "solver.convergence.absolute_tol",
+      "label": "Absolute Tolerance",
+      "type": "number",
+      "unit": "",
+      "default": null,
+      "min": 0.0,
+      "max": 0.01,
+      "step": null,
+      "group": "Solver",
+      "description": "Optional absolute floor for residual and delta.",
+      "options": null
+    },
+    {
+      "name": "solver.convergence.scaling_mode",
+      "label": "Scaling Mode",
+      "type": "select",
+      "unit": "",
+      "default": "auto",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Solver",
+      "description": "Reference scales for relative convergence.",
+      "options": [
+        {
+          "value": "auto",
+          "label": "Auto (initial residual / psi)"
+        },
+        {
+          "value": "initial",
+          "label": "Initial guess"
+        },
+        {
+          "value": "manual",
+          "label": "Manual scales"
+        }
+      ]
+    },
+    {
+      "name": "solver.convergence.residual_scale",
+      "label": "Manual Residual Scale",
+      "type": "number",
+      "unit": "",
+      "default": null,
+      "min": 1e-20,
+      "max": null,
+      "step": null,
+      "group": "Solver",
+      "description": "Used when scaling_mode=manual.",
+      "options": null
+    },
+    {
+      "name": "solver.convergence.solution_scale",
+      "label": "Manual Solution Scale",
+      "type": "number",
+      "unit": "",
+      "default": null,
+      "min": 1e-20,
+      "max": null,
+      "step": null,
+      "group": "Solver",
+      "description": "Used when scaling_mode=manual.",
+      "options": null
+    },
+    {
+      "name": "tol",
+      "label": "Convergence Tolerance (legacy)",
+      "type": "number",
+      "unit": "",
+      "default": 0.0001,
+      "min": 1e-10,
+      "max": 0.01,
+      "step": null,
+      "group": "Solver",
+      "description": "Alias for relative_tol when solver.convergence.relative_tol is not set.",
+      "options": null
+    },
+    {
+      "name": "max_iter",
+      "label": "Max Iterations",
+      "type": "integer",
+      "unit": "",
+      "default": 200,
+      "min": 10.0,
+      "max": 1000.0,
+      "step": null,
+      "group": "Solver",
+      "description": "Maximum Newton iterations.",
+      "options": null
+    },
+    {
+      "name": "damping",
+      "label": "Damping Factor",
+      "type": "number",
+      "unit": "",
+      "default": 0.5,
+      "min": 0.01,
+      "max": 1.0,
+      "step": null,
+      "group": "Solver",
+      "description": "Newton damping factor.",
+      "options": null
+    },
+    {
+      "name": "exp_clamp",
+      "label": "Exp Clamp Limit",
+      "type": "number",
+      "unit": "",
+      "default": 40.0,
+      "min": 10.0,
+      "max": 80.0,
+      "step": null,
+      "group": "Solver",
+      "description": "Boltzmann exponent clamp.",
+      "options": null
+    },
+    {
+      "name": "rho_threshold_frac",
+      "label": "Rho Threshold Fraction",
+      "type": "number",
+      "unit": "",
+      "default": 0.05,
+      "min": 0.001,
+      "max": 0.5,
+      "step": null,
+      "group": "Solver",
+      "description": "Peak fraction for W_rho extraction.",
+      "options": null
+    },
+    {
+      "name": "psi_threshold_frac",
+      "label": "Psi Threshold Fraction",
+      "type": "number",
+      "unit": "",
+      "default": 0.001,
+      "min": 1e-05,
+      "max": 0.2,
+      "step": null,
+      "group": "Solver",
+      "description": "Vbi fraction for W_psi extraction.",
+      "options": null
+    },
+    {
+      "name": "agent.backend",
+      "label": "Agent Backend",
+      "type": "select",
+      "unit": "",
+      "default": "rules",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Agent",
+      "description": "Agent decision backend.",
+      "options": [
+        {
+          "value": "rules",
+          "label": "Rules Only"
+        },
+        {
+          "value": "deepseek",
+          "label": "DeepSeek LLM"
+        },
+        {
+          "value": "hybrid",
+          "label": "Hybrid (LLM + Rules)"
+        }
+      ]
+    },
+    {
+      "name": "agent.probe_window",
+      "label": "Probe Window",
+      "type": "integer",
+      "unit": "",
+      "default": 10,
+      "min": 1.0,
+      "max": 100.0,
+      "step": null,
+      "group": "Agent",
+      "description": "Recent probes for agent context.",
+      "options": null
+    },
+    {
+      "name": "iteration.max_trials",
+      "label": "Max Trials",
+      "type": "integer",
+      "unit": "",
+      "default": 1,
+      "min": 1.0,
+      "max": 20.0,
+      "step": null,
+      "group": "Agent",
+      "description": "Maximum iteration trials.",
+      "options": null
+    },
+    {
+      "name": "iteration.stop_on",
+      "label": "Stop On",
+      "type": "select",
+      "unit": "",
+      "default": "recommend_next",
+      "min": null,
+      "max": null,
+      "step": null,
+      "group": "Agent",
+      "description": "Iteration stop condition.",
+      "options": [
+        {
+          "value": "recommend_next",
+          "label": "Recommend Next"
+        },
+        {
+          "value": "never",
+          "label": "Never"
+        }
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "name": "potential",
+      "label": "Potential \u03c8(x)",
+      "chart_type": "line_profile",
+      "x": "x",
+      "y": "psi",
+      "unit": "V",
+      "x_label": "x (cm)",
+      "y_label": "\u03c8 (V)"
+    },
+    {
+      "name": "electric_field",
+      "label": "Electric Field E(x)",
+      "chart_type": "line_profile",
+      "x": "x",
+      "y": "E",
+      "unit": "V/cm",
+      "x_label": "x (cm)",
+      "y_label": "E (V/cm)"
+    },
+    {
+      "name": "carriers",
+      "label": "Carrier Concentration",
+      "chart_type": "line_profile",
+      "x": "x",
+      "y": "n",
+      "unit": "cm\u207b\u00b3",
+      "x_label": "x (cm)",
+      "y_label": "n, p (cm\u207b\u00b3)"
+    },
+    {
+      "name": "residual",
+      "label": "Newton Residual",
+      "chart_type": "convergence",
+      "x": "iteration",
+      "y": "residual_norm",
+      "unit": "",
+      "x_label": "Iteration",
+      "y_label": "Residual Norm"
+    }
+  ],
+  "probes": [
+    {
+      "name": "residual_norm",
+      "label": "Residual Norm",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "scaled_residual_norm",
+      "label": "Scaled Residual Norm",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "residual_reduction_rate",
+      "label": "Residual Reduction Rate",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "delta_norm",
+      "label": "Delta Norm",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "scaled_delta_norm",
+      "label": "Scaled Delta Norm",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "relative_tol",
+      "label": "Relative Tolerance",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "residual_scale",
+      "label": "Residual Scale",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "solution_scale",
+      "label": "Solution Scale",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "damping_factor",
+      "label": "Damping Factor",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "max_electric_field",
+      "label": "Max Electric Field",
+      "type": "scalar",
+      "unit": "V/cm",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "jacobian_condition_estimate",
+      "label": "Jacobian Condition",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "charge_neutrality_error",
+      "label": "Charge Neutrality Error",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "convergence_risk_score",
+      "label": "Convergence Risk Score",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "mesh_quality_indicator",
+      "label": "Mesh Quality",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "convergence_status",
+      "label": "Convergence Status",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "failure_reason",
+      "label": "Failure Reason",
+      "type": "scalar",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "stalled",
+      "label": "Stalled",
+      "type": "boolean",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "is_unphysical",
+      "label": "Unphysical",
+      "type": "boolean",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    },
+    {
+      "name": "exp_clamped",
+      "label": "Exp Clamped",
+      "type": "boolean",
+      "unit": "",
+      "x_label": "",
+      "y_label": ""
+    }
+  ],
+  "tree_nodes": [
+    {
+      "id": "physics",
+      "label": "Physics Model",
+      "parameter_groups": [
+        "Physics"
+      ]
+    },
+    {
+      "id": "material",
+      "label": "Material",
+      "parameter_groups": [
+        "Material"
+      ]
+    },
+    {
+      "id": "doping",
+      "label": "Doping",
+      "parameter_groups": [
+        "Doping"
+      ]
+    },
+    {
+      "id": "geometry",
+      "label": "Geometry",
+      "parameter_groups": [
+        "Geometry"
+      ]
+    },
+    {
+      "id": "mesh",
+      "label": "Mesh",
+      "parameter_groups": [
+        "Mesh"
+      ]
+    },
+    {
+      "id": "bias",
+      "label": "Bias",
+      "parameter_groups": [
+        "Bias"
+      ]
+    },
+    {
+      "id": "solver",
+      "label": "Solver",
+      "parameter_groups": [
+        "Solver"
+      ]
+    },
+    {
+      "id": "agent",
+      "label": "Agent Settings",
+      "parameter_groups": [
+        "Agent"
+      ]
+    }
+  ],
+  "default_charts": [
+    {
+      "id": "overview",
+      "label": "Overview",
+      "chart_type": "overview",
+      "series_names": []
+    },
+    {
+      "id": "profiles",
+      "label": "Profiles",
+      "chart_type": "profiles",
+      "series_names": [
+        "potential",
+        "electric_field"
+      ]
+    },
+    {
+      "id": "carriers",
+      "label": "Carriers",
+      "chart_type": "profiles",
+      "series_names": [
+        "electron_density",
+        "hole_density",
+        "charge_density"
+      ]
+    },
+    {
+      "id": "convergence",
+      "label": "Newton Convergence",
+      "chart_type": "convergence",
+      "series_names": [
+        "scaled_residual",
+        "scaled_delta"
+      ]
+    },
+    {
+      "id": "sweep",
+      "label": "Bias Sweep",
+      "chart_type": "sweep",
+      "series_names": [
+        "W_vs_Vapp",
+        "Cj_vs_Vapp"
+      ]
+    }
+  ],
+  "default_config": {
+    "model_type": "poisson",
+    "material": "Si",
+    "temperature_k": 300.0,
+    "doping": {
+      "type": "abrupt"
+    },
+    "Na": 1e+18,
+    "Nd": 1e+16,
+    "Lp": 0.0002,
+    "Ln": 0.0002,
+    "Nx": 400,
+    "Vapp": 0.0,
+    "tol": 0.0001,
+    "max_iter": 200,
+    "damping": 0.5,
+    "exp_clamp": 40.0,
+    "rho_threshold_frac": 0.05,
+    "psi_threshold_frac": 0.001,
+    "solver": {
+      "method": "damped_newton",
+      "linear_backend": "direct",
+      "adaptive_damping": false,
+      "convergence": {
+        "criterion": "both",
+        "relative_tol": 0.0001,
+        "scaling_mode": "auto"
+      }
+    },
+    "junction_refinement": {
+      "enabled": false,
+      "ratio": 3.0,
+      "width_frac": 0.1
+    },
+    "bias_scan": {
+      "enabled": false,
+      "Vapp_min": -1.0,
+      "Vapp_max": 0.5,
+      "Vapp_step": 0.1,
+      "warm_start": true,
+      "continuation": true
+    },
+    "optimization": {
+      "enabled": false,
+      "method": "random",
+      "max_trials": 20,
+      "design_vars": [],
+      "objectives": []
+    },
+    "agent": {
+      "backend": "rules",
+      "probe_window": 10
+    },
+    "iteration": {
+      "max_trials": 1,
+      "stop_on": "recommend_next"
+    }
+  }
+}

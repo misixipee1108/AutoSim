@@ -1,13 +1,63 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache and build artifacts
 __pycache__/
 *.py[cod]
 *.egg-info/
 .eggs/
-dist/
-build/
-.env
-runs/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+
+# Node dependencies
+node_modules/
+
+# Frontend build outputs
+dist/
+build/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+
+# Logs and temporary files
+*.log
+*.tmp
+*.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+.cursor/
+
+# Agent / skill files
+skills/
+agent-skills/
+docs/agent-skills/
 .claude/
+
+# Planning and temporary markdown files
+*_plan.md
+*_draft.md
+project_plan.md
+agent_native_simulation_plan.md
+AutoSim *.md
+front.md
+
+# Simulation outputs
+outputs/
+results/
+runs/
+checkpoints/
+
+# Generated plot images (keep docs assets)
 *.png
 !docs/**/*.png

@@ -1,0 +1,11 @@
+{
+  "converged": true,
+  "metrics": {
+    "Vbi": 0.88,
+    "W": 0.00012
+  },
+  "tolerances": {
+    "Vbi": 0.5,
+    "W": 0.6
+  }
+}

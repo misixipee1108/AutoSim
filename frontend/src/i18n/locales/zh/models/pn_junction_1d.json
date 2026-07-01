@@ -1,0 +1,241 @@
+{
+  "name": "一维 PN 结",
+  "category": "半导体",
+  "description": "一维 PN 结：非线性泊松、耗尽近似或漂移–扩散，可配置掺杂、材料与非线性求解器。",
+  "tree": {
+    "physics": "物理模型",
+    "material": "材料",
+    "doping": "掺杂",
+    "geometry": "几何",
+    "mesh": "网格",
+    "bias": "偏压",
+    "solver": "求解器",
+    "agent": "智能体设置"
+  },
+  "groups": {
+    "Physics": "物理模型",
+    "Material": "材料",
+    "Doping": "掺杂",
+    "Geometry": "几何",
+    "Mesh": "网格",
+    "Bias": "偏压",
+    "Solver": "求解器",
+    "Agent": "智能体"
+  },
+  "params": {
+    "model_type": {
+      "label": "物理模型",
+      "description": "选择要求解的控制方程。",
+      "options": {
+        "poisson": "非线性泊松",
+        "depletion": "耗尽近似",
+        "drift_diffusion": "漂移–扩散 (Gummel)"
+      },
+      "optionsHelp": {
+        "poisson": "自洽非线性泊松方程，采用玻尔兹曼载流子统计求 ψ(x)。",
+        "depletion": "耗尽近似，忽略中性区多数载流子，求解快但精度较低。",
+        "drift_diffusion": "漂移–扩散模型，Gummel 迭代耦合泊松与连续性方程。"
+      }
+    },
+    "material": {
+      "label": "材料",
+      "description": "半导体材料。",
+      "options": { "Si": "硅 (Si)", "Ge": "锗 (Ge)" },
+      "optionsHelp": {
+        "Si": "硅：300 K 时 Eg ≈ 1.12 eV，PN 结演示默认材料。",
+        "Ge": "锗：带隙更小，室温本征载流子浓度更高。"
+      }
+    },
+    "temperature_k": {
+      "label": "温度",
+      "description": "晶格温度。"
+    },
+    "doping.type": {
+      "label": "掺杂分布",
+      "description": "PN 结掺杂分布模型。",
+      "options": {
+        "abrupt": "突变结 (阶跃)",
+        "linear_graded": "线性渐变",
+        "gaussian": "高斯分布",
+        "piecewise": "分段 / 表格"
+      },
+      "optionsHelp": {
+        "abrupt": "阶跃结：P 区恒定 Na，N 区恒定 Nd。",
+        "linear_graded": "净掺杂在过渡区线性渐变。",
+        "gaussian": "以冶金结为中心的高斯掺杂分布。",
+        "piecewise": "用户定义的分段或表格掺杂。"
+      }
+    },
+    "Na": {
+      "label": "受主浓度",
+      "description": "P 区受主掺杂浓度。"
+    },
+    "Nd": {
+      "label": "施主浓度",
+      "description": "N 区施主掺杂浓度。"
+    },
+    "Lp": {
+      "label": "P 区长度",
+      "description": "P 区长度。"
+    },
+    "Ln": {
+      "label": "N 区长度",
+      "description": "N 区长度。"
+    },
+    "Nx": {
+      "label": "网格点数",
+      "description": "网格节点数。"
+    },
+    "junction_refinement.enabled": {
+      "label": "结区加密",
+      "description": "在 PN 结附近加密网格。"
+    },
+    "junction_refinement.ratio": {
+      "label": "加密比",
+      "description": "结区与体区单元尺寸比。"
+    },
+    "junction_refinement.width_frac": {
+      "label": "结区范围比例",
+      "description": "每侧参与加密的区域比例。"
+    },
+    "Vapp": {
+      "label": "外加偏压",
+      "description": "外加电压（P 区相对 N 区）。"
+    },
+    "bias_scan.enabled": {
+      "label": "启用偏压扫描",
+      "description": "在偏压范围内扫描。"
+    },
+    "bias_scan.Vapp_min": {
+      "label": "扫描 Vapp 下限",
+      "description": "偏压扫描最小值。"
+    },
+    "bias_scan.Vapp_max": {
+      "label": "扫描 Vapp 上限",
+      "description": "偏压扫描最大值。"
+    },
+    "bias_scan.Vapp_step": {
+      "label": "扫描步长",
+      "description": "偏压扫描步长。"
+    },
+    "bias_scan.warm_start": {
+      "label": "步间热启动",
+      "description": "使用上一偏压点的 ψ 作为初值。"
+    },
+    "bias_scan.continuation": {
+      "label": "偏压延续",
+      "description": "收敛失败时减半步长重试。"
+    },
+    "solver.method": {
+      "label": "非线性求解器",
+      "description": "牛顿迭代策略。",
+      "options": {
+        "newton": "牛顿法 (全步长)",
+        "damped_newton": "阻尼牛顿法",
+        "newton_line_search": "牛顿法 + 线搜索"
+      },
+      "optionsHelp": {
+        "newton": "全牛顿步；接近解时收敛快，初值差时可能发散。",
+        "damped_newton": "阻尼牛顿法；在强非线性区缩小更新步长以提高稳定性。",
+        "newton_line_search": "带线搜索的牛顿法；每步选取使残差下降的步长。"
+      }
+    },
+    "solver.linear_backend": {
+      "label": "线性求解器",
+      "description": "线性方程组求解后端。",
+      "options": {
+        "direct": "直接法 (稀疏 LU)",
+        "iterative": "迭代法"
+      },
+      "optionsHelp": {
+        "direct": "稀疏直接 LU；对一维数千节点网格稳定可靠。",
+        "iterative": "迭代线性求解；适用于更大规模系统（未来 2D/3D）。"
+      }
+    },
+    "solver.adaptive_damping": {
+      "label": "自适应阻尼",
+      "description": "根据残差下降率调整阻尼因子。"
+    },
+    "tol": {
+      "label": "收敛容差",
+      "description": "牛顿残差收敛阈值。"
+    },
+    "max_iter": {
+      "label": "最大迭代次数",
+      "description": "牛顿法最大迭代次数。"
+    },
+    "damping": {
+      "label": "阻尼因子",
+      "description": "牛顿迭代阻尼因子。"
+    },
+    "exp_clamp": {
+      "label": "指数截断限",
+      "description": "玻尔兹曼指数截断上限。"
+    },
+    "rho_threshold_frac": {
+      "label": "ρ 阈值比例",
+      "description": "由 ρ 峰值提取 W 的阈值比例。"
+    },
+    "psi_threshold_frac": {
+      "label": "ψ 阈值比例",
+      "description": "由 Vbi 比例提取 W 的阈值。"
+    },
+    "agent.backend": {
+      "label": "智能体后端",
+      "description": "智能体决策后端。",
+      "options": {
+        "rules": "仅规则",
+        "deepseek": "DeepSeek LLM",
+        "hybrid": "混合（LLM + 规则）"
+      },
+      "optionsHelp": {
+        "rules": "确定性规则智能体，无 LLM，行为可预测。",
+        "deepseek": "DeepSeek LLM 解读探针并给出决策建议。",
+        "hybrid": "LLM 提议动作，规则层校验并强制执行安全约束。"
+      }
+    },
+    "agent.probe_window": {
+      "label": "探针窗口",
+      "description": "智能体上下文中的最近探针数。"
+    },
+    "iteration.max_trials": {
+      "label": "最大试验次数",
+      "description": "迭代最大试验次数。"
+    },
+    "iteration.stop_on": {
+      "label": "停止条件",
+      "description": "迭代停止条件。",
+      "options": {
+        "recommend_next": "推荐下一轮",
+        "never": "不停止"
+      },
+      "optionsHelp": {
+        "recommend_next": "当智能体发出 recommend_next 决策时停止迭代。",
+        "never": "忽略智能体建议，跑满全部试验次数。"
+      }
+    }
+  },
+  "charts": {
+    "overview": "概览",
+    "profiles": "分布曲线",
+    "carriers": "载流子",
+    "convergence": "牛顿收敛",
+    "sweep": "偏压扫描"
+  },
+  "probes": {
+    "residual_norm": "残差范数",
+    "residual_reduction_rate": "残差下降率",
+    "delta_norm": "增量范数",
+    "damping_factor": "阻尼因子",
+    "max_electric_field": "最大电场",
+    "jacobian_condition_estimate": "雅可比条件数",
+    "charge_neutrality_error": "电荷中性误差",
+    "convergence_risk_score": "收敛风险评分",
+    "mesh_quality_indicator": "网格质量",
+    "convergence_status": "收敛状态",
+    "failure_reason": "失败原因",
+    "stalled": "停滞",
+    "is_unphysical": "非物理",
+    "exp_clamped": "指数截断"
+  }
+}

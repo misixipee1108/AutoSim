@@ -1,0 +1,14 @@
+model_type: poisson
+material: Si
+temperature_k: 300.0
+Na: 1.0e18
+Nd: 1.0e16
+Lp: 2.0e-4
+Ln: 2.0e-4
+Nx: 400
+Vapp: 0.0
+tol: 5.0e-4
+max_iter: 300
+damping: 0.5
+sources:
+  - "Sze & Ng (2012) Ch. 1-2"

@@ -64,6 +64,21 @@ class _SafeEvaluator(ast.NodeVisitor):
                 raise ValueError(f"function not allowed: {node.func.id}")
             args = [self.visit(a) for a in node.args]
             return float(fn(*args))
+        if isinstance(node, ast.IfExp):
+            return self.visit(node.body) if self.visit(node.test) else self.visit(node.orelse)
+        if isinstance(node, ast.Compare):
+            left = self.visit(node.left)
+            op = node.ops[0]
+            right = self.visit(node.comparators[0])
+            if isinstance(op, ast.Gt):
+                return 1.0 if left > right else 0.0
+            if isinstance(op, ast.Lt):
+                return 1.0 if left < right else 0.0
+            if isinstance(op, ast.GtE):
+                return 1.0 if left >= right else 0.0
+            if isinstance(op, ast.LtE):
+                return 1.0 if left <= right else 0.0
+            raise ValueError(f"unsupported comparison: {type(op).__name__}")
         raise ValueError(f"unsupported expression node: {type(node).__name__}")
 
 

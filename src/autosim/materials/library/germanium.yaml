@@ -1,0 +1,18 @@
+germanium:
+  name: Ge
+  eps_r: 16.0
+  eps_r_source: "Sze & Ng (2012) Ch.1"
+  ni_model: green1990_ge
+  ni_ref_T: 300.0
+  ni_ref_value: 2.4e13
+  temperature_range_k: [100, 500]
+  Eg_eV: 0.66
+  Eg_source: "Sze & Ng (2012) Ch.1"
+  mu_n_cm2_Vs: 3900
+  mu_p_cm2_Vs: 1900
+  mobility_source: "Sze & Ng (2012) Ch.1 @ 300K"
+  Nc_cm3: 1.02e19
+  Nv_cm3: 5.64e18
+  chi_eV: 4.0
+  band_source: "Sze & Ng (2012) Ch.1"
+  source: "Sze & Ng (2012) Ch.1; Green (1990) intrinsic model adapted"

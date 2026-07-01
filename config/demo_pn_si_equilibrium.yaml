@@ -1,0 +1,32 @@
+material: Si
+temperature_k: 300.0
+Na: 1.0e18
+Nd: 1.0e16
+Lp: 2.0e-4
+Ln: 2.0e-4
+Nx: 400
+Vapp: 0.0
+tol: 1.0e-4
+max_iter: 200
+damping: 0.5
+exp_clamp: 40.0
+rho_threshold_frac: 0.05
+agent:
+  backend: hybrid
+  probe_window: 10
+iteration:
+  max_trials: 3
+  stop_on: recommend_next
+sources:
+  - "Material Si@300K eps_r=11.7 ni=1e10 cm^-3: Sze & Ng (2012) Table 1-1; Green (1990) JAP 67, 2944"
+  - "Constants q,kB,eps_0: NIST CODATA 2018"
+  - "Doping Na=1e18 Nd=1e16 cm^-3 abrupt junction: Sze & Ng (2012) Ch. 2"
+  - "Numerical FDM central difference + damped Newton-Raphson"
+
+# --- Data sources ---
+# Material: Si @ 300K, ni=1e10 cm^-3, eps_r=11.7
+#   Ref: Sze & Ng (2012) Physics of Semiconductor Devices 4th ed. Table 1-1
+#   Ref: Green (1990) J. Appl. Phys. 67, 2944
+# Doping: Na=1e18, Nd=1e16 cm^-3 (asymmetric abrupt junction benchmark)
+#   Ref: Sze & Ng (2012) Ch. 2 abrupt junction
+# Numerical: FDM central difference, damped Newton (tol=1e-4)

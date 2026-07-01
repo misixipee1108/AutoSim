@@ -1,0 +1,11 @@
+model_type: poisson
+material: Si
+Na: 1.0e18
+Nd: 1.0e16
+Nx: 400
+Vapp: -0.5
+tol: 5.0e-4
+max_iter: 300
+damping: 0.5
+sources:
+  - "Sze & Ng (2012) Ch. 2 reverse bias with warm-start in test suite"

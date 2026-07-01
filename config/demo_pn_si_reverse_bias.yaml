@@ -1,0 +1,28 @@
+material: Si
+temperature_k: 300.0
+Na: 1.0e18
+Nd: 1.0e16
+Lp: 2.0e-4
+Ln: 2.0e-4
+Nx: 400
+Vapp: -0.5
+tol: 1.0e-4
+max_iter: 200
+damping: 0.3
+exp_clamp: 40.0
+rho_threshold_frac: 0.05
+agent:
+  backend: rules
+  probe_window: 10
+iteration:
+  max_trials: 3
+  stop_on: recommend_next
+sources:
+  - "Material Si@300K: Sze & Ng (2012); Green (1990) JAP 67, 2944"
+  - "Doping Na=1e18 Nd=1e16 cm^-3: Sze & Ng (2012) Ch. 2"
+  - "Reverse bias Vapp=-0.5 V small-bias extension benchmark"
+
+# --- Data sources ---
+# Material: Si @ 300K (Sze & Ng 2012; Green 1990)
+# Doping: abrupt junction Na=1e18, Nd=1e16 cm^-3 (Sze Ch. 2)
+# Bias: Vapp=-0.5 V reverse bias (small-bias validation extension)

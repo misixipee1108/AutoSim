@@ -1,0 +1,5 @@
+{
+  "converged": true,
+  "min_time_steps": 2,
+  "description": "Transient step completes with time series"
+}

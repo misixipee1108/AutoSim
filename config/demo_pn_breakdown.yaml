@@ -1,0 +1,12 @@
+model_type: poisson
+material: Si
+Na: 1.0e18
+Nd: 1.0e18
+Nx: 200
+Vapp: -3.0
+tol: 1.0e-4
+breakdown:
+  enabled: true
+  E_crit: 3.0e5
+sources:
+  - "Sze & Ng (2012) Ch. 2 reverse bias breakdown assessment"
