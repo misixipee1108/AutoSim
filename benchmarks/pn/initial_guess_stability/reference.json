@@ -1,0 +1,20 @@
+{
+
+  "case_id": "initial_guess_stability",
+
+  "description": "Newton solver converges from depletion, flat, and perturbed initial guesses",
+
+  "validation_mode": "analytic_abrupt",
+
+  "category": "solver",
+
+  "initial_guess_variants": ["depletion", "perturbed"],
+
+  "converged": true,
+
+  "require_all_variants_converged": true,
+
+  "tolerances": {}
+
+}
+

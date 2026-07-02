@@ -1,0 +1,41 @@
+{
+  "interface_id": "mechanics_0d_falling_body",
+  "name": "Mechanics 0D Falling Body",
+  "category": "mechanics",
+  "dimension": "0D",
+  "governing_equations": ["m * dv/dt = m*g - F_drag"],
+  "unknowns": [
+    {"name": "y", "label": "Height", "unit": "m"},
+    {"name": "v", "label": "Velocity", "unit": "m/s"}
+  ],
+  "material_requirements": [],
+  "boundary_condition_types": [],
+  "derived_variables": [
+    {"name": "a", "label": "Acceleration", "unit": "m/s²"},
+    {"name": "drag_force", "label": "Drag Force", "unit": "N"}
+  ],
+  "tree_parameter_groups": ["Body", "Drag", "Integration"],
+  "parameter_schema": [
+    {"name": "settings.mass", "label": "Mass", "type": "number", "unit": "kg", "default": 1.0, "min": 0.001, "max": 1000, "group": "Body"},
+    {"name": "settings.gravity", "label": "Gravity", "type": "number", "unit": "m/s²", "default": 9.81, "group": "Body"},
+    {"name": "settings.y0", "label": "Initial Height", "type": "number", "unit": "m", "default": 100.0, "min": 0, "group": "Body"},
+    {"name": "settings.v0", "label": "Initial Velocity", "type": "number", "unit": "m/s", "default": 0.0, "group": "Body"},
+    {"name": "settings.ground_y", "label": "Ground Level", "type": "number", "unit": "m", "default": 0.0, "group": "Body"},
+    {"name": "settings.drag_model", "label": "Drag Model", "type": "select", "default": "quadratic", "group": "Drag", "options": [{"value": "linear", "label": "Linear"}, {"value": "quadratic", "label": "Quadratic"}, {"value": "polynomial", "label": "Polynomial"}, {"value": "custom", "label": "Custom"}]},
+    {"name": "settings.t_max", "label": "Simulation Time", "type": "number", "unit": "s", "default": 30.0, "min": 0.1, "group": "Integration"},
+    {"name": "settings.dt", "label": "Time Step", "type": "number", "unit": "s", "default": 0.01, "min": 1e-5, "group": "Integration"},
+    {"name": "settings.probe_interval", "label": "Probe Interval", "type": "number", "unit": "s", "default": 0.1, "group": "Integration"}
+  ],
+  "default_instance_config": {
+    "mass": 1.0,
+    "gravity": 9.81,
+    "y0": 100.0,
+    "v0": 0.0,
+    "ground_y": 0.0,
+    "drag_model": "quadratic",
+    "drag_params": {"c2": 0.5},
+    "t_max": 30.0,
+    "dt": 0.01,
+    "probe_interval": 0.1
+  }
+}

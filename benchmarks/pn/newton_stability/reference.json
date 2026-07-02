@@ -1,4 +1,8 @@
 {
+  "case_id": "newton_stability",
+  "description": "Newton solver stability under damping",
+  "validation_mode": "analytic_abrupt",
+  "category": "solver",
   "converged": true,
   "tolerances": {}
 }

@@ -1,6 +1,12 @@
 import { useAppStore } from '../../store/useAppStore';
 import type { UnifiedAgentDecision } from '../../types';
-import { useLocale, tRuntime } from '../../i18n';
+import {
+  useLocale,
+  tRuntime,
+  resolveActionRaw,
+  resolveAgentReason,
+  resolveParamKey,
+} from '../../i18n';
 
 const ACTION_COLORS: Record<string, string> = {
   continue: 'text-green-400',
@@ -11,6 +17,19 @@ const ACTION_COLORS: Record<string, string> = {
   recommend_next: 'text-blue-400',
   mark_infeasible: 'text-red-500',
 };
+
+function formatSuggestedParams(params: Record<string, unknown>): string {
+  const translated: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    const label = resolveParamKey(key);
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      translated[label] = value;
+    } else {
+      translated[label] = value;
+    }
+  }
+  return JSON.stringify(translated, null, 2);
+}
 
 export function AgentDecisionPanel() {
   const { t } = useLocale();
@@ -36,6 +55,7 @@ function DecisionCard({ decision }: { decision: UnifiedAgentDecision }) {
   const { t } = useLocale();
   const color = ACTION_COLORS[decision.action] ?? 'text-slate-300';
   const actionLabel = tRuntime(`action.${decision.action}`, decision.action);
+  const rawLabel = decision.raw_action ? resolveActionRaw(decision.raw_action) : null;
 
   return (
     <div className="card p-2 text-xs">
@@ -44,16 +64,16 @@ function DecisionCard({ decision }: { decision: UnifiedAgentDecision }) {
         <span className="text-muted">{(decision.confidence * 100).toFixed(0)}%</span>
       </div>
       {decision.reason && (
-        <p className="text-muted leading-relaxed">{decision.reason}</p>
+        <p className="text-muted leading-relaxed">{resolveAgentReason(decision.reason)}</p>
       )}
       {decision.suggested_params && Object.keys(decision.suggested_params).length > 0 && (
         <pre className="mt-1 text-[10px] text-faint bg-panel-solid rounded p-1 overflow-auto border border-subtle">
-          {JSON.stringify(decision.suggested_params, null, 2)}
+          {formatSuggestedParams(decision.suggested_params)}
         </pre>
       )}
-      {decision.raw_action && decision.raw_action !== decision.action && (
+      {rawLabel && decision.raw_action && decision.raw_action !== decision.action && (
         <div className="text-[10px] text-faint mt-1">
-          {t('agent.rawPrefix')} {decision.raw_action}
+          {t('agent.rawPrefix')} {rawLabel}
         </div>
       )}
     </div>

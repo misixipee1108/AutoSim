@@ -1,0 +1,137 @@
+{
+  "schema_version": "2.0",
+  "project_id": "demo_falling_block_v2",
+  "title": "Demo Falling Block",
+  "model": {
+    "geometry": {
+      "dimension": "0D",
+      "segments": [],
+      "junction_position": 0.0
+    },
+    "domains": [
+      {
+        "domain_id": "body",
+        "geometry_ref": "point",
+        "label": ""
+      }
+    ],
+    "materials": [],
+    "physics_interfaces": [
+      {
+        "instance_id": "falling_body",
+        "interface_id": "mechanics_0d_falling_body",
+        "domain_ids": [
+          "body"
+        ],
+        "settings": {
+          "mass": 1.0,
+          "gravity": 9.81,
+          "y0": 100.0,
+          "v0": 0.0,
+          "ground_y": 0.0,
+          "drag_model": "quadratic",
+          "drag_params": {
+            "c2": 0.5
+          },
+          "t_max": 30.0,
+          "probe_interval": 0.1,
+          "dt": 0.01
+        }
+      }
+    ],
+    "variables": [],
+    "boundary_conditions": [],
+    "initial_conditions": [],
+    "source_terms": [],
+    "mesh": {
+      "Nx": 1,
+      "type": "uniform",
+      "junction_refinement": {
+        "enabled": false,
+        "ratio": 3.0,
+        "width_frac": 0.1
+      }
+    }
+  },
+  "studies": [
+    {
+      "study_id": "time_fall",
+      "study_type": "time_dependent",
+      "label": "Time Dependent Fall",
+      "physics_interface_ids": [
+        "falling_body"
+      ],
+      "parameters": {
+        "iteration": {
+          "max_trials": 5,
+          "stop_on": "recommend_next"
+        }
+      },
+      "solver_sequence": [],
+      "agent": {
+        "backend": "hybrid",
+        "probe_window": 10
+      }
+    }
+  ],
+  "results": {
+    "output_variables": [
+      {
+        "var_id": "height",
+        "source": "falling_body.y",
+        "label": "Height y(t)",
+        "unit": "m",
+        "kind": "profile"
+      },
+      {
+        "var_id": "velocity",
+        "source": "falling_body.v",
+        "label": "Velocity v(t)",
+        "unit": "m/s",
+        "kind": "profile"
+      },
+      {
+        "var_id": "impact_time",
+        "source": "derived.impact_time",
+        "label": "Impact Time",
+        "unit": "s",
+        "kind": "scalar"
+      },
+      {
+        "var_id": "impact_velocity",
+        "source": "derived.impact_velocity",
+        "label": "Impact Velocity",
+        "unit": "m/s",
+        "kind": "scalar"
+      }
+    ],
+    "visualizations": [
+      {
+        "viz_id": "height_time",
+        "chart_type": "time_series",
+        "tab": {
+          "id": "time_series",
+          "label": "Time Series"
+        },
+        "bindings": {
+          "x": "t",
+          "y": [
+            "height",
+            "velocity"
+          ],
+          "x_label": "t (s)",
+          "y_label": "Value",
+          "log_scale": false
+        },
+        "implemented": true
+      }
+    ],
+    "postprocessing": [],
+    "reports": []
+  },
+  "active_study_id": "time_fall",
+  "metadata": {
+    "description": "",
+    "tags": []
+  }
+}

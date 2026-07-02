@@ -1,5 +1,8 @@
 {
-  "converged": true,
+  "case_id": "graded_junction",
+  "description": "Linear graded junction — frozen numerical reference only",
+  "validation_mode": "numerical_only",
+  "category": "doping",
   "metrics": {
     "Vbi": 0.88,
     "W": 0.00012
@@ -7,5 +10,6 @@
   "tolerances": {
     "Vbi": 0.5,
     "W": 0.6
-  }
+  },
+  "converged": true
 }

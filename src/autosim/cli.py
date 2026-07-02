@@ -1,231 +1,118 @@
-"""Command-line interface for AutoSim."""
+"""Command-line interface for AutoSim (v2 project-only)."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
 import yaml
 
-from autosim.orchestrator.pn_runner import run_pn_iteration, run_pn_trial, run_pn_with_sweep
-from autosim.orchestrator.pn_optimizer import run_pn_optimization
-from autosim.orchestrator.runner import run_iteration, run_trial
-from autosim.pn.schemas import PnRunConfig
-from autosim.recorder.logger import RunRecorder
-from autosim.recorder.plots import generate_all_plots
-from autosim.recorder.pn_logger import PnRunRecorder
-from autosim.recorder.pn_plots import generate_pn_plots, plot_sweep_curves
-from autosim.schemas import AgentBackend, RunConfig
+from autosim.api.adapters.project import ProjectAdapter
+from autosim.project.loader import load_project, load_project_json
+from autosim.project.yaml_converter import falling_yaml_to_project, pn_yaml_to_project
+from autosim.recorder.project_recorder import ProjectRunRecorder
 
 
-def load_falling_config(path: str | Path) -> RunConfig:
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    return RunConfig.model_validate(data)
-
-
-def load_pn_config(path: str | Path) -> PnRunConfig:
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    return PnRunConfig.model_validate(data)
+def _load_project_from_path(path: str | Path):
+    path = Path(path)
+    if path.suffix.lower() in (".json",):
+        return load_project_json(path)
+    if path.suffix.lower() in (".yaml", ".yml"):
+        with open(path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if isinstance(data, dict) and data.get("schema_version") == "2.0":
+            return load_project(path)
+        if "mass" in data and "gravity" in data:
+            return falling_yaml_to_project(path)
+        return pn_yaml_to_project(path)
+    raise ValueError(f"Unsupported project file: {path}")
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    if args.sim == "pn":
-        return _cmd_pn_run(args)
-    return _cmd_falling_run(args)
-
-
-def cmd_iterate(args: argparse.Namespace) -> int:
-    if args.sim == "pn":
-        return _cmd_pn_iterate(args)
-    return _cmd_falling_iterate(args)
-
-
-def _cmd_falling_run(args: argparse.Namespace) -> int:
-    config = load_falling_config(args.config)
-    sim_input = config.to_sim_input()
-    if args.agent:
-        sim_input.agent.backend = AgentBackend(args.agent)
-    recorder = RunRecorder(args.output)
-    result = run_trial(sim_input)
-    recorder.save_trial(result)
-    generate_all_plots([result], recorder.plots_dir)
-    print(f"Run complete. Output: {recorder.run_dir}")
-    print(f"  Impact time: {result.impact_time}")
-    print(f"  Impact velocity: {result.impact_velocity}")
-    return 0
-
-
-def _cmd_falling_iterate(args: argparse.Namespace) -> int:
-    config = load_falling_config(args.config)
-    sim_input = config.to_sim_input()
-    if args.agent:
-        sim_input.agent.backend = AgentBackend(args.agent)
-    if args.max_trials:
-        sim_input.iteration.max_trials = args.max_trials
-    recorder = RunRecorder(args.output)
-    results = run_iteration(sim_input)
-    for result in results:
-        recorder.save_trial(result)
-    summary_path = recorder.save_summary(results)
-    generate_all_plots(results, recorder.plots_dir)
-    print(f"Iteration complete. {len(results)} trial(s). Output: {recorder.run_dir}")
-    print(f"  Summary: {summary_path}")
-    return 0
-
-
-def cmd_optimize(args: argparse.Namespace) -> int:
-    if args.sim != "pn":
-        print("Optimization is currently supported for --sim pn only.", file=sys.stderr)
+    project_path = args.project or args.config
+    if not project_path:
+        print("Provide --project or --config path.", file=sys.stderr)
         return 1
-    return _cmd_pn_optimize(args)
+    project = _load_project_from_path(project_path)
+    if args.agent and project.studies:
+        study = project.studies[0]
+        if study.agent:
+            studies = [
+                s.model_copy(update={"agent": s.agent.model_copy(update={"backend": args.agent})})
+                if s.study_id == study.study_id
+                else s
+                for s in project.studies
+            ]
+            project = project.model_copy(update={"studies": studies})
+
+    adapter = ProjectAdapter()
+    raw = adapter.run_study(project, max_trials=args.max_trials or 1)
+    recorder = ProjectRunRecorder(args.output)
+    out_dir = recorder.save(project, raw)
+    print(f"Run complete. Output: {out_dir}")
+    print(f"  Project: {project.project_id}")
+    print(f"  Study: {project.active_study_id}")
+    return 0
 
 
-def cmd_benchmark(args: argparse.Namespace) -> int:
-    if args.sim != "pn":
-        print("Benchmarks currently supported for --sim pn only.", file=sys.stderr)
+def cmd_export_yaml(args: argparse.Namespace) -> int:
+    """Convert legacy YAML demo to v2 project JSON."""
+    project = _load_project_from_path(args.config)
+    out = Path(args.output)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump(project.model_dump(mode="json"), f, indent=2)
+    print(f"Exported: {out}")
+    return 0
+
+
+def cmd_benchmark_pn(args: argparse.Namespace) -> int:
+    from autosim.pn.benchmark_report import default_output_dir
+    from autosim.pn.benchmarks import list_benchmark_cases, run_benchmark_suite
+
+    cases = [args.case] if args.case else None
+    if args.case and args.case not in list_benchmark_cases():
+        print(f"Benchmark case not found: {args.case}", file=sys.stderr)
         return 1
-    from autosim.pn.benchmarks import list_benchmark_cases, run_benchmark
-
-    cases = [args.case] if args.case else list_benchmark_cases()
-    if not cases:
-        print("No benchmark cases found.", file=sys.stderr)
-        return 1
-    failed = 0
-    for name in cases:
-        result = run_benchmark(name)
-        status = "PASS" if result["all_passed"] else "FAIL"
-        print(f"[{status}] {name}: {result['checks']}")
-        if not result["all_passed"]:
-            failed += 1
-    return 1 if failed else 0
-
-
-def _cmd_pn_run(args: argparse.Namespace) -> int:
-    config = load_pn_config(args.config)
-    sim_input = config.to_sim_input()
-    if args.agent:
-        sim_input.agent.backend = AgentBackend(args.agent)
-    recorder = PnRunRecorder(args.output)
-
-    if sim_input.bias_scan.enabled or getattr(args, "sweep", False):
-        sim_input.bias_scan.enabled = True
-        results, sweep = run_pn_with_sweep(sim_input)
-        for result in results:
-            recorder.save_trial(result)
-        sweep_path = recorder.save_sweep_summary(sweep)
-        generate_pn_plots(results, recorder.plots_dir)
-        if sweep.points:
-            plot_sweep_curves(sweep, recorder.plots_dir / "sweep_curves.png")
-        validation_path = recorder.save_validation_report(results)
-        print(f"PN bias sweep complete. Output: {recorder.run_dir}")
-        print(f"  Points: {len(sweep.points)}, all converged: {sweep.all_converged}")
-        print(f"  Sweep summary: {sweep_path}")
-        print(f"  Validation: {validation_path}")
-        return 0
-
-    result = run_pn_trial(sim_input)
-    recorder.save_trial(result)
-    generate_pn_plots([result], recorder.plots_dir)
-    validation_path = recorder.save_validation_report([result])
-    print(f"PN run complete. Output: {recorder.run_dir}")
-    print(f"  Vbi: {result.Vbi_numeric:.4f} V")
-    print(f"  W: {result.W_numeric:.2e} cm (rho method)")
-    print(f"  Converged: {result.converged}")
-    print(f"  Validation: {validation_path}")
-    return 0
-
-
-def _cmd_pn_optimize(args: argparse.Namespace) -> int:
-    config = load_pn_config(args.config)
-    sim_input = config.to_sim_input()
-    if args.agent:
-        sim_input.agent.backend = AgentBackend(args.agent)
-    sim_input.optimization.enabled = True
-    if args.max_trials:
-        sim_input.optimization.max_trials = args.max_trials
-    recorder = PnRunRecorder(args.output)
-    results, best = run_pn_optimization(sim_input)
-    for result in results:
-        recorder.save_trial(result)
-    summary_path = recorder.save_optimization_summary(results, best)
-    validation_path = recorder.save_validation_report(results)
-    generate_pn_plots(results, recorder.plots_dir)
-    print(f"PN optimization complete. {len(results)} trial(s). Output: {recorder.run_dir}")
-    print(f"  Summary: {summary_path}")
-    print(f"  Validation: {validation_path}")
-    if best:
-        print(f"  Best W: {best.W_numeric:.2e} cm, Emax: {best.Emax_numeric:.2e} V/cm")
-    return 0
-
-
-def _cmd_pn_iterate(args: argparse.Namespace) -> int:
-    config = load_pn_config(args.config)
-    sim_input = config.to_sim_input()
-    if args.agent:
-        sim_input.agent.backend = AgentBackend(args.agent)
-    if args.max_trials:
-        sim_input.iteration.max_trials = args.max_trials
-    recorder = PnRunRecorder(args.output)
-    results = run_pn_iteration(sim_input)
-    for result in results:
-        recorder.save_trial(result)
-    summary_path = recorder.save_summary(results)
-    validation_path = recorder.save_validation_report(results)
-    generate_pn_plots(results, recorder.plots_dir)
-    print(f"PN iteration complete. {len(results)} trial(s). Output: {recorder.run_dir}")
-    print(f"  Summary: {summary_path}")
-    print(f"  Validation: {validation_path}")
-    return 0
+    output_dir = Path(args.output) if args.output else default_output_dir()
+    suite = run_benchmark_suite(case_ids=cases, output_dir=output_dir)
+    for case in suite.cases:
+        label = case.outcome.upper()
+        print(f"[{label}] {case.case_id} ({case.elapsed_s:.2f}s) — {case.run_status}")
+    s = suite.summary
+    print(f"\nSummary: {s.passed} passed, {s.warnings} warnings, {s.failed} failed")
+    return 1 if suite.summary.failed else 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="autosim", description="AutoSim physics simulation")
+    parser = argparse.ArgumentParser(prog="autosim", description="AutoSim v2 simulation CLI")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    for name, help_text in [("run", "Run a single simulation trial"), ("iterate", "Run multi-trial iteration")]:
-        p = sub.add_parser(name, help=help_text)
-        p.add_argument("-c", "--config", required=True, help="Path to YAML config")
-        p.add_argument(
-            "--sim",
-            choices=["falling_block", "pn"],
-            default="falling_block",
-            help="Simulation type",
-        )
-        p.add_argument(
-            "--agent",
-            choices=["rules", "deepseek", "hybrid"],
-            help="Override agent backend",
-        )
-        p.add_argument("-o", "--output", default="runs", help="Output directory")
-        if name == "run":
-            p.add_argument(
-                "--sweep",
-                action="store_true",
-                help="Run bias sweep (PN only; also enabled via bias_scan.enabled in config)",
-            )
-        if name == "iterate":
-            p.add_argument("--max-trials", type=int, help="Override max trials")
-        p.set_defaults(func=cmd_run if name == "run" else cmd_iterate)
-
-    opt = sub.add_parser("optimize", help="Run parameter optimization (PN)")
-    opt.add_argument("-c", "--config", required=True, help="Path to YAML config")
-    opt.add_argument("--sim", choices=["pn"], default="pn", help="Simulation type")
-    opt.add_argument(
+    run_p = sub.add_parser("run", help="Run a SimulationProject (JSON or legacy YAML)")
+    run_p.add_argument("-p", "--project", help="Path to v2 project JSON")
+    run_p.add_argument("-c", "--config", help="Path to YAML (legacy) or project file")
+    run_p.add_argument(
         "--agent",
         choices=["rules", "deepseek", "hybrid"],
         help="Override agent backend",
     )
-    opt.add_argument("-o", "--output", default="runs", help="Output directory")
-    opt.add_argument("--max-trials", type=int, help="Override optimization max trials")
-    opt.set_defaults(func=cmd_optimize)
+    run_p.add_argument("--max-trials", type=int, default=1, help="Multi-trial iteration count")
+    run_p.add_argument("-o", "--output", default="runs", help="Output directory")
+    run_p.set_defaults(func=cmd_run)
 
-    bench = sub.add_parser("benchmark", help="Run PN benchmark cases")
-    bench.add_argument("--sim", choices=["pn"], default="pn")
-    bench.add_argument("--case", help="Specific benchmark case name")
-    bench.set_defaults(func=cmd_benchmark)
+    export_p = sub.add_parser("export-project", help="Convert legacy YAML to v2 project JSON")
+    export_p.add_argument("-c", "--config", required=True, help="Legacy YAML config")
+    export_p.add_argument("-o", "--output", required=True, help="Output JSON path")
+    export_p.set_defaults(func=cmd_export_yaml)
+
+    bench = sub.add_parser("benchmark", help="Run benchmark suites")
+    bench_sub = bench.add_subparsers(dest="suite", required=True)
+    pn_bench = bench_sub.add_parser("pn", help="PN junction benchmark suite")
+    pn_bench.add_argument("--case", help="Specific benchmark case name")
+    pn_bench.add_argument("-o", "--output", help="Output directory")
+    pn_bench.set_defaults(func=cmd_benchmark_pn)
 
     args = parser.parse_args(argv)
     return args.func(args)

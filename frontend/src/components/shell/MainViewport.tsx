@@ -1,24 +1,41 @@
+import { useMemo } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { ChartRouter } from '../charts/ChartRouter';
-import { useLocale, tModel } from '../../i18n';
+import { useLocale, inferModelIdFromProject } from '../../i18n';
+import { buildChartTabs } from '../../utils/buildChartTabs';
 
 export function MainViewport() {
   const { t } = useLocale();
-  const descriptor = useAppStore((s) => s.currentDescriptor);
+  const currentProject = useAppStore((s) => s.currentProject);
   const activeTab = useAppStore((s) => s.activeChartTab);
   const setActiveTab = useAppStore((s) => s.setActiveChartTab);
   const runResult = useAppStore((s) => s.runResult);
+  const enabledVizIds = useAppStore((s) => s.enabledVizIds);
+  const vizLayoutMode = useAppStore((s) => s.vizLayoutMode);
+  const vizChartGroups = useAppStore((s) => s.vizChartGroups);
 
-  if (!descriptor) {
+  const modelId = currentProject ? inferModelIdFromProject(currentProject) : undefined;
+
+  const tabs = useMemo(() => {
+    if (!currentProject || !modelId) return [];
+    return buildChartTabs(
+      currentProject,
+      enabledVizIds,
+      modelId,
+      vizLayoutMode,
+      vizChartGroups,
+    );
+  }, [currentProject, enabledVizIds, modelId, vizLayoutMode, vizChartGroups]);
+
+  const active = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
+
+  if (!currentProject) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted">
         {t('viewport.loadingModel')}
       </div>
     );
   }
-
-  const tabs = descriptor.default_charts;
-  const active = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
 
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full">
@@ -35,7 +52,7 @@ export function MainViewport() {
             onClick={() => setActiveTab(tab.id)}
             className={`tab-btn ${activeTab === tab.id ? 'tab-btn-active' : ''}`}
           >
-            {tModel(descriptor.model_id, `charts.${tab.id}`, tab.label)}
+            {tab.label}
           </button>
         ))}
       </div>

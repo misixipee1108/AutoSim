@@ -1,6 +1,6 @@
 import ReactECharts from 'echarts-for-react';
 import { useAppStore } from '../../store/useAppStore';
-import { useLocale, tSeries } from '../../i18n';
+import { useLocale, tSeries, resolveAxisLabel } from '../../i18n';
 import { useChartTheme } from '../../hooks/useChartTheme';
 
 interface Props {
@@ -38,13 +38,13 @@ export function SweepTab({ seriesNames }: Props) {
           },
           xAxis: {
             type: 'value',
-            name: s.x_label ?? 'Vapp (V)',
+            name: resolveAxisLabel(s.x_label ?? 'Vapp (V)'),
             axisLine: { lineStyle: { color: ct.axisLineColor } },
             nameTextStyle: { color: ct.axisColor },
           },
           yAxis: {
             type: 'value',
-            name: s.y_label ?? s.unit,
+            name: resolveAxisLabel(s.y_label ?? s.unit),
             axisLine: { lineStyle: { color: ct.axisLineColor } },
             nameTextStyle: { color: ct.axisColor },
           },

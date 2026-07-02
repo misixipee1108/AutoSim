@@ -11,13 +11,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 from autosim.api.adapters.base import RunCallbacks
-from autosim.api.model_registry.registry import get_adapter
 from autosim.api.schemas import (
     ConvergenceSeries,
     CreateRunRequest,
     RunStatus,
     StreamEvent,
-    TrialSummary,
     UnifiedAgentDecision,
     UnifiedProbe,
     UnifiedRunResult,
@@ -64,11 +62,14 @@ class RunManager:
         self._lock = threading.Lock()
 
     def create_run(self, request: CreateRunRequest) -> RunState:
+        if not request.project:
+            raise ValueError("SimulationProject payload required (v2 API)")
         run_id = str(uuid.uuid4())[:8]
-        state = RunState(run_id=run_id, model_id=request.model_id)
+        project_id = request.project.get("project_id", "simulation_project_v2")
+        state = RunState(run_id=run_id, model_id=str(project_id))
         with self._lock:
             self._runs[run_id] = state
-        self._executor.submit(self._execute_run, state, request)
+        self._executor.submit(self._execute_project_run, state, request)
         return state
 
     def get_run(self, run_id: str) -> RunState | None:
@@ -82,26 +83,30 @@ class RunManager:
         state.event_queues.append(queue)
         return queue
 
-    def _execute_run(self, state: RunState, request: CreateRunRequest) -> None:
+    def _execute_project_run(self, state: RunState, request: CreateRunRequest) -> None:
+        from autosim.api.adapters.project import ProjectAdapter
+
         state.status = RunStatus.RUNNING
-        state.append_log(f"Run started for model {request.model_id}")
+        state.append_log(f"Run started for {state.model_id}")
         self._broadcast_status(state, RunStatus.RUNNING)
 
         try:
-            adapter = get_adapter(request.model_id)
-            config = adapter.validate_config(request.config)
-            if request.agent:
-                from autosim.api.adapters.base import apply_agent_override
-
-                data = config.model_dump()
-                flat = apply_agent_override(data, request.agent)
-                config = adapter.validate_config(flat)
-
-            if request.max_trials > 1:
-                data = config.model_dump()
-                data.setdefault("iteration", {})
-                data["iteration"]["max_trials"] = request.max_trials
-                config = adapter.validate_config(data)
+            adapter = ProjectAdapter()
+            project = adapter.validate_project(request.project or {})
+            if request.active_study_id:
+                project = project.model_copy(update={"active_study_id": request.active_study_id})
+            study = adapter.get_active_study(project)
+            if request.agent and project.studies:
+                agent = study.agent.model_copy(update={"backend": request.agent}) if study.agent else None
+                if agent:
+                    studies = []
+                    for s in project.studies:
+                        if s.study_id == study.study_id:
+                            studies.append(s.model_copy(update={"agent": agent}))
+                        else:
+                            studies.append(s)
+                    project = project.model_copy(update={"studies": studies})
+                    study = adapter.get_active_study(project)
 
             callbacks = RunCallbacks(
                 on_probe=lambda p: self._on_probe(state, p),
@@ -109,31 +114,17 @@ class RunManager:
                 on_log=lambda msg: state.append_log(msg),
             )
 
-            multi_run = request.max_trials > 1
-            if hasattr(config, "bias_scan") and getattr(config.bias_scan, "enabled", False):
-                multi_run = True
-            if hasattr(config, "optimization") and getattr(config.optimization, "enabled", False):
-                multi_run = True
+            result = adapter.run_study(
+                project,
+                study=study,
+                callbacks=callbacks,
+                max_trials=request.max_trials,
+            )
 
-            if multi_run:
-                results = adapter.run_iteration(config, callbacks=callbacks)
-                last = results[-1]
-                unified = adapter.normalize_result(
-                    state.run_id, last, logs=state.logs, all_trials=results
-                )
-                unified.trials = [
-                    TrialSummary(
-                        trial_index=r.trial_index,
-                        status=RunStatus.COMPLETED if not r.early_stopped else RunStatus.EARLY_STOPPED,
-                        stop_reason=r.stop_reason,
-                        early_stopped=r.early_stopped,
-                        scalars=adapter.normalize_result(state.run_id, r).scalars,
-                    )
-                    for r in results
-                ]
+            if isinstance(result, list):
+                unified = adapter.normalize_trials(state.run_id, project, result, logs=state.logs)
             else:
-                result = adapter.run_trial(config, trial_index=0, callbacks=callbacks)
-                unified = adapter.normalize_result(state.run_id, result, logs=state.logs)
+                unified = adapter.normalize_result(state.run_id, project, result, logs=state.logs)
 
             state.result = unified
             state.status = unified.status

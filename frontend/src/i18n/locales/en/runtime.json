@@ -51,6 +51,23 @@
     "recommend_next": "Recommend Next",
     "mark_infeasible": "Mark Infeasible"
   },
+  "actionRaw": {
+    "continue": "Continue",
+    "early_stop": "Early Stop",
+    "adjust_damping": "Adjust Damping",
+    "refine_mesh": "Refine Mesh",
+    "adjust_bias_step": "Adjust Bias Step",
+    "change_initial_guess": "Change Initial Guess",
+    "mark_as_infeasible": "Mark Infeasible",
+    "explain_failure": "Explain Failure",
+    "recommend_next_parameters": "Recommend Next Parameters",
+    "switch_solver": "Switch Solver",
+    "reduce_bias_step": "Reduce Bias Step",
+    "increase_damping": "Increase Damping",
+    "adjust_params": "Adjust Params",
+    "recommend_next": "Recommend Next",
+    "mark_infeasible": "Mark Infeasible"
+  },
   "dimension": {
     "0D": "0D",
     "1D": "1D",
@@ -60,9 +77,16 @@
   "metrics": {
     "Vbi": "Built-in Potential",
     "W": "Depletion Width",
+    "W_psi": "ψ Depletion Width",
+    "W_rho": "ρ Depletion Width",
     "Emax": "Max Electric Field",
     "Cj": "Junction Capacitance",
+    "J": "Current Density",
+    "M_ionization": "Ionization Integral",
+    "breakdown_risk": "Breakdown Risk",
     "final_scaled_residual_norm": "Final Scaled Residual",
+    "final_residual_norm": "Final Residual Norm",
+    "final_delta_norm": "Final Delta Norm",
     "final_scaled_delta_norm": "Final Scaled Delta",
     "relative_tol": "Relative Tolerance",
     "newton_iterations": "Newton Iterations",
@@ -86,6 +110,94 @@
     "scaled_delta": "Scaled Delta",
     "energy_drift": "Energy Drift",
     "W_vs_Vapp": "Depletion Width vs Vapp",
-    "Cj_vs_Vapp": "Junction Capacitance vs Vapp"
+    "Cj_vs_Vapp": "Junction Capacitance vs Vapp",
+    "Emax_vs_Vapp": "Max Field vs Bias",
+    "I_vs_Vapp": "Current Density vs Bias",
+    "Iteration": "Iteration"
+  },
+  "axes": {
+    "x_cm": "x (cm)",
+    "psi_V": "ψ (V)",
+    "Vapp_V": "Vapp (V)",
+    "Emax_Vcm": "Emax (V/cm)",
+    "W_cm": "W (cm)",
+    "time_s": "Time (s)",
+    "iteration": "Iteration",
+    "relative_tol": "Relative tolerance",
+    "value": "Value"
+  },
+  "modelType": {
+    "poisson": "Poisson",
+    "depletion": "Depletion",
+    "drift_diffusion": "Drift-Diffusion",
+    "transient_dd": "Transient DD"
+  },
+  "dopingType": {
+    "abrupt": "Abrupt",
+    "linear_graded": "Linear Graded",
+    "gaussian": "Gaussian",
+    "erfc": "Erfc",
+    "piecewise": "Piecewise",
+    "custom": "Custom",
+    "table": "Table"
+  },
+  "studyType": {
+    "stationary": "Stationary",
+    "bias_sweep": "Bias Sweep",
+    "cv_sweep": "C-V Sweep",
+    "optimization": "Optimization",
+    "time_dependent": "Time Dependent",
+    "parameter_sweep": "Parameter Sweep",
+    "transient": "Transient"
+  },
+  "validationReason": {
+    "no_analytic_dd": "No analytic reference for drift-diffusion (MVP)",
+    "no_analytic_doping": "No analytic reference for this doping profile",
+    "no_analytic_model": "No analytic reference for this model type",
+    "shockley_ineligible": "Shockley validation not applicable",
+    "shockley_diode": "Shockley diode validation"
+  },
+  "agentReason": {
+    "nan_detected": "NaN detected in Newton iteration",
+    "negative_carrier": "Negative carrier concentration detected",
+    "exp_clamped": "Boltzmann exponent clamped; reduce damping or bias step",
+    "bias_stall": "Newton stalled during bias sweep; reduce bias step",
+    "newton_stalled": "Newton residual stalled; refine junction mesh",
+    "slow_convergence": "Slow but progressing convergence",
+    "newton_progressing": "Newton iteration progressing",
+    "approx_convergence": "Approximate convergence; refine mesh for tighter scaled residual",
+    "converged_ok": "Simulation converged successfully",
+    "breakdown_near": "Electric field near breakdown limit",
+    "high_risk": "High convergence risk",
+    "jacobian_ill": "Jacobian ill-conditioned",
+    "rules_veto": "Rules veto"
+  },
+  "paramKeys": {
+    "Na": "Acceptor Na",
+    "Nd": "Donor Nd",
+    "Nx": "Grid points",
+    "Vapp": "Applied bias",
+    "damping": "Damping factor",
+    "tol": "Tolerance",
+    "solver": "Solver",
+    "bias_scan": "Bias scan",
+    "junction_refinement": "Junction refinement"
+  },
+  "outcome": {
+    "pass": "Pass",
+    "warning": "Warning",
+    "fail": "Fail"
+  },
+  "benchmarkCategory": {
+    "passed": "Passed",
+    "warning": "Warning",
+    "failed": "Failed",
+    "numerical_only": "Numerical Only",
+    "validation_unavailable": "No Analytic Validation"
+  },
+  "validationMode": {
+    "analytic_abrupt": "Analytic (Abrupt)",
+    "numerical_only": "Numerical Reference",
+    "validation_unavailable": "Validation Unavailable"
   }
 }

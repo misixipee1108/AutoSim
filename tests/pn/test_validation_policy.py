@@ -33,8 +33,8 @@ def test_abrupt_analytic_validation_enabled():
     assert result.validation.W_psi is not None
 
 
-def test_linear_graded_validation_unavailable():
-    """Graded doping has no analytic reference — status unavailable, numeric metrics kept."""
+def test_linear_graded_validation_numerical_only():
+    """Graded doping has no analytic reference — status numerical_only, numeric metrics kept."""
     sim_input = PnSimInput(
         Na=1e18,
         Nd=1e16,
@@ -49,7 +49,7 @@ def test_linear_graded_validation_unavailable():
 
     result = solve_pn(sim_input)
     assert result.validation is not None
-    assert result.validation.status == ValidationStatus.UNAVAILABLE
+    assert result.validation.status == ValidationStatus.NUMERICAL_ONLY
     assert "linear_graded" in result.validation.reason
     assert result.validation.Vbi is None
     assert result.validation.all_passed is False

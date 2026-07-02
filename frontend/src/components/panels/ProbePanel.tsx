@@ -1,47 +1,37 @@
 import { useAppStore } from '../../store/useAppStore';
 import type { UnifiedProbe } from '../../types';
-import { useLocale, tModel } from '../../i18n';
+import {
+  useLocale,
+  inferModelIdFromProject,
+  resolveProbeLabel,
+} from '../../i18n';
 
 export function ProbePanel() {
   const { t } = useLocale();
   const runResult = useAppStore((s) => s.runResult);
   const liveProbes = useAppStore((s) => s.liveProbes);
-  const descriptor = useAppStore((s) => s.currentDescriptor);
+  const currentProject = useAppStore((s) => s.currentProject);
+  const modelId = inferModelIdFromProject(currentProject);
 
   const probes = liveProbes.length > 0 ? liveProbes : (runResult?.probes ?? []);
-  const schemaMap = new Map(descriptor?.probes.map((p) => [p.name, p]) ?? []);
 
   return (
     <div className="h-full min-h-0 flex flex-col">
       <div className="panel-header">{t('panel.probes')}</div>
       <div className="flex-1 overflow-y-auto p-2">
-        {probes.length === 0 && !descriptor?.probes.length ? (
+        {probes.length === 0 ? (
           <p className="text-xs text-muted p-2">{t('probe.noData')}</p>
         ) : (
           <div className="space-y-1">
-            {descriptor?.probes.map((schema) => {
-              const live = probes.find((p) => p.name === schema.name);
-              return (
-                <ProbeRow
-                  key={schema.name}
-                  label={tModel(descriptor.model_id, `probes.${schema.name}`, schema.label)}
-                  unit={schema.unit}
-                  probe={live}
-                  type={schema.type}
-                />
-              );
-            })}
-            {probes
-              .filter((p) => !schemaMap.has(p.name))
-              .map((p) => (
-                <ProbeRow
-                  key={p.name}
-                  label={descriptor ? tModel(descriptor.model_id, `probes.${p.name}`, p.label) : p.label}
-                  unit={p.unit}
-                  probe={p}
-                  type={p.type}
-                />
-              ))}
+            {probes.map((p) => (
+              <ProbeRow
+                key={p.name}
+                label={resolveProbeLabel(modelId, p.name, p.label)}
+                unit={p.unit}
+                probe={p}
+                type={p.type}
+              />
+            ))}
           </div>
         )}
       </div>

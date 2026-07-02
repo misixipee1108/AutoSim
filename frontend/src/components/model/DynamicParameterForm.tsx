@@ -1,46 +1,52 @@
 import { useAppStore } from '../../store/useAppStore';
 import type { ParameterSchema } from '../../types';
-import { useLocale, tModel, tModelOptionHelp } from '../../i18n';
-import { QuantityInput } from './QuantityInput';
+import {
+  useLocale,
+  inferModelIdFromProject,
+  resolveParamDescription,
+  resolveParamLabel,
+  resolveParamOption,
+  resolveParamOptionHelp,
+  resolveTreeLabel,
+} from '../../i18n';
 import { SelectWithHelp } from './SelectWithHelp';
 import { DelayedTooltip } from '../ui/DelayedTooltip';
+import { getProjectValue } from '../../utils/projectParameters';
+import type { ModelTreeNode } from '../../types/project';
 
-function getConfigValue(config: Record<string, unknown>, name: string): unknown {
-  const parts = name.split('.');
-  let cur: unknown = config;
-  for (const p of parts) {
-    if (cur == null || typeof cur !== 'object') return undefined;
-    cur = (cur as Record<string, unknown>)[p];
+function findTreeNode(roots: ModelTreeNode[], nodeId: string): ModelTreeNode | null {
+  for (const root of roots) {
+    if (root.id === nodeId) return root;
+    if (root.children?.length) {
+      const found = findTreeNode(root.children, nodeId);
+      if (found) return found;
+    }
   }
-  return cur;
+  return null;
 }
 
-function ParamField({ param, modelId }: { param: ParameterSchema; modelId: string }) {
-  const config = useAppStore((s) => s.config);
-  const setConfigValue = useAppStore((s) => s.setConfigValue);
-  const value = getConfigValue(config, param.name);
-
-  const label = tModel(modelId, `params.${param.name}.label`, param.label);
-  const description = tModel(modelId, `params.${param.name}.description`, param.description ?? '');
+function ProjectParamField({ param }: { param: ParameterSchema }) {
+  const project = useAppStore((s) => s.currentProject)!;
+  const setProjectValue = useAppStore((s) => s.setProjectValue);
+  const value = getProjectValue(project, param.name);
+  const modelId = inferModelIdFromProject(project);
+  const label = resolveParamLabel(modelId, param);
+  const description = resolveParamDescription(modelId, param);
 
   if (param.type === 'select') {
     const options = (param.options ?? []).map((o) => ({
       value: o.value,
-      label: tModel(modelId, `params.${param.name}.options.${o.value}`, o.label),
-      help: tModelOptionHelp(
-        modelId,
-        param.name,
-        o.value,
-        param.description ?? o.label,
-      ),
+      label: resolveParamOption(modelId, param, o.value, o.label),
+      help: resolveParamOptionHelp(modelId, param, o.value, o.label),
     }));
-
     return (
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] text-muted">{label}</span>
+        <DelayedTooltip content={description}>
+          <span className="text-[11px] text-muted cursor-help">{label}</span>
+        </DelayedTooltip>
         <SelectWithHelp
           value={String(value ?? param.default ?? '')}
-          onChange={(v) => setConfigValue(param.name, v)}
+          onChange={(v) => setProjectValue(param.name, v)}
           options={options}
         />
       </label>
@@ -49,31 +55,30 @@ function ParamField({ param, modelId }: { param: ParameterSchema; modelId: strin
 
   if (param.type === 'boolean') {
     return (
-      <DelayedTooltip content={description}>
-        <label className="flex items-center gap-2 text-xs text-primary cursor-help">
-          <input
-            type="checkbox"
-            checked={Boolean(value ?? param.default)}
-            onChange={(e) => setConfigValue(param.name, e.target.checked)}
-          />
-          {label}
-        </label>
-      </DelayedTooltip>
+      <label className="flex items-center gap-2 text-xs text-primary">
+        <input
+          type="checkbox"
+          checked={Boolean(value ?? param.default)}
+          onChange={(e) => setProjectValue(param.name, e.target.checked)}
+        />
+        <DelayedTooltip content={description}>
+          <span className="cursor-help">{label}</span>
+        </DelayedTooltip>
+      </label>
     );
   }
 
   if (param.unit) {
     return (
-      <QuantityInput
+      <ProjectQuantityField
         param={param}
         label={label}
         description={description}
+        value={value}
+        onChange={(v) => setProjectValue(param.name, v)}
       />
     );
   }
-
-  const inputType = param.type === 'integer' ? 'number' : 'number';
-  const step = param.step ?? (param.type === 'integer' ? 1 : 'any');
 
   return (
     <label className="flex flex-col gap-1">
@@ -81,14 +86,45 @@ function ParamField({ param, modelId }: { param: ParameterSchema; modelId: strin
         <span className="text-[11px] text-muted cursor-help">{label}</span>
       </DelayedTooltip>
       <input
-        type={inputType}
-        step={step}
+        type="number"
+        step={param.type === 'integer' ? 1 : 'any'}
         min={param.min}
         max={param.max}
         value={Number(value ?? param.default ?? 0)}
         onChange={(e) => {
           const v = param.type === 'integer' ? parseInt(e.target.value, 10) : parseFloat(e.target.value);
-          setConfigValue(param.name, v);
+          setProjectValue(param.name, v);
+        }}
+      />
+    </label>
+  );
+}
+
+function ProjectQuantityField({
+  param,
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  param: ParameterSchema;
+  label: string;
+  description: string;
+  value: unknown;
+  onChange: (v: number) => void;
+}) {
+  const num = typeof value === 'number' ? value : Number(param.default ?? 0);
+  return (
+    <label className="flex flex-col gap-1">
+      <DelayedTooltip content={description}>
+        <span className="text-[11px] text-muted cursor-help">{label}</span>
+      </DelayedTooltip>
+      <input
+        type="text"
+        value={`${num}[${param.unit}]`}
+        onChange={(e) => {
+          const m = e.target.value.match(/^([-+eE0-9.]+)/);
+          if (m) onChange(parseFloat(m[1]));
         }}
       />
     </label>
@@ -97,25 +133,30 @@ function ParamField({ param, modelId }: { param: ParameterSchema; modelId: strin
 
 export function DynamicParameterForm() {
   const { t } = useLocale();
-  const descriptor = useAppStore((s) => s.currentDescriptor);
-  const selectedNode = useAppStore((s) => s.selectedTreeNode);
+  const projectParameters = useAppStore((s) => s.projectParameters);
+  const selectedTreePath = useAppStore((s) => s.selectedTreePath);
+  const projectTreeSchema = useAppStore((s) => s.projectTreeSchema);
 
-  if (!descriptor) return null;
+  const selectedNode = selectedTreePath
+    ? findTreeNode(projectTreeSchema?.roots ?? [], selectedTreePath)
+    : null;
 
-  const node = descriptor.tree_nodes.find((n) => n.id === selectedNode);
-  const groups = node?.parameter_groups ?? [];
-  const params = descriptor.parameters.filter((p) => groups.includes(p.group ?? 'General'));
-  const sectionTitle = node
-    ? tModel(descriptor.model_id, `tree.${node.id}`, node.label)
+  const sectionTitle = selectedTreePath
+    ? resolveTreeLabel(selectedTreePath, selectedNode?.label ?? selectedTreePath.split('.').pop() ?? '', {
+        studyType: selectedNode?.study_type,
+        interfaceId: selectedNode?.interface_id,
+        physicsCategory: selectedNode?.physics_category,
+        parameterGroup: selectedNode?.parameter_group,
+      })
     : t('form.parameters');
 
   return (
     <div className="p-3 space-y-3">
       <div className="text-xs font-semibold text-primary">{sectionTitle}</div>
-      {params.length === 0 ? (
+      {projectParameters.length === 0 ? (
         <p className="text-xs text-muted">{t('form.noParameters')}</p>
       ) : (
-        params.map((p) => <ParamField key={p.name} param={p} modelId={descriptor.model_id} />)
+        projectParameters.map((p) => <ProjectParamField key={p.name} param={p} />)
       )}
     </div>
   );

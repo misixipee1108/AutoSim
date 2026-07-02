@@ -11,6 +11,8 @@ import { useLocale } from '../../i18n';
 import { TopToolbar } from './TopToolbar';
 import { ModelTree } from '../model/ModelTree';
 import { DynamicParameterForm } from '../model/DynamicParameterForm';
+import { VisualizationOptionsForm } from '../model/VisualizationOptionsForm';
+import { isVizOptionsPath } from '../../config/vizCatalog';
 import { MainViewport } from './MainViewport';
 import { SolverStatusPanel } from '../panels/SolverStatusPanel';
 import { AgentDecisionPanel } from '../panels/AgentDecisionPanel';
@@ -18,6 +20,9 @@ import { ProbePanel } from '../panels/ProbePanel';
 import { LogConsole } from '../logs/LogConsole';
 import { CaseHistoryTable } from '../panels/CaseHistoryTable';
 import { TaskQueuePanel } from '../panels/TaskQueuePanel';
+import { BenchmarkReportListPanel } from '../benchmark/BenchmarkReportListPanel';
+import { BenchmarkReportView } from '../benchmark/BenchmarkReportView';
+import { CompareProfilesPanel } from '../panels/CompareProfilesPanel';
 
 type Layout = { [panelId: string]: number };
 
@@ -80,6 +85,7 @@ function BottomDock({
         <div className="flex-1 min-h-0 overflow-y-auto flex flex-col">
           <TaskQueuePanel />
           <CaseHistoryTable />
+          <CompareProfilesPanel />
           <LogConsole />
         </div>
       )}
@@ -91,6 +97,10 @@ export function AppShell() {
   const bottomPanelRef = usePanelRef();
   const initializedRef = useRef(false);
   const [logExpanded, setLogExpanded] = useState(true);
+  const workspace = useAppStore((s) => s.workspace);
+  const selectedTreePath = useAppStore((s) => s.selectedTreePath);
+  const isBenchmark = workspace === 'benchmark';
+  const showVizOptions = isVizOptionsPath(selectedTreePath);
 
   const { defaultLayout: vLayout, onLayoutChanged: onVLayoutChanged } = useDefaultLayout({
     id: 'autosim-layout-vertical',
@@ -172,19 +182,33 @@ export function AppShell() {
               defaultSize="288px"
               groupResizeBehavior="preserve-pixel-size"
             >
-              <aside className="h-full flex flex-col border-r border-default bg-panel">
-                <ModelTree />
-                <div className="flex-1 overflow-y-auto border-t border-default">
-                  <DynamicParameterForm />
-                </div>
+              <aside className="h-full min-h-0 flex flex-col border-r border-default bg-panel">
+                {isBenchmark ? (
+                  <BenchmarkReportListPanel />
+                ) : (
+                  <>
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                      <ModelTree />
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto border-t border-default">
+                      {showVizOptions ? (
+                        <VisualizationOptionsForm />
+                      ) : (
+                        <DynamicParameterForm />
+                      )}
+                    </div>
+                  </>
+                )}
               </aside>
             </Panel>
             <Separator className="resize-handle-h" />
             <Panel id="center-view" minSize="30%">
               <main className="h-full min-w-0 flex flex-col">
-                <MainViewport />
+                {isBenchmark ? <BenchmarkReportView /> : <MainViewport />}
               </main>
             </Panel>
+            {!isBenchmark && (
+              <>
             <Separator className="resize-handle-h" />
             <Panel
               id="right-status"
@@ -217,6 +241,8 @@ export function AppShell() {
                 </Group>
               </aside>
             </Panel>
+              </>
+            )}
           </Group>
         </Panel>
         <Separator className="resize-handle-v" />

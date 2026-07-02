@@ -1,24 +1,27 @@
 import { useAppStore } from '../../store/useAppStore';
 import {
   useLocale,
-  tModel,
-  tCategory,
-  tDimension,
   tRuntime,
   tMetric,
+  tModel,
+  inferModelIdFromProject,
+  resolveProjectTitle,
 } from '../../i18n';
 
 export function OverviewTab() {
   const { t } = useLocale();
-  const descriptor = useAppStore((s) => s.currentDescriptor);
+  const currentProject = useAppStore((s) => s.currentProject);
   const runResult = useAppStore((s) => s.runResult);
-  const config = useAppStore((s) => s.config);
   const runStatus = useAppStore((s) => s.runStatus);
 
-  if (!descriptor) return null;
+  if (!currentProject) return null;
 
-  const modelName = tModel(descriptor.model_id, 'name', descriptor.model_name);
-  const categoryLine = `${tCategory(descriptor.model_id, descriptor.category)} · ${tDimension(descriptor.dimension)}`;
+  const modelName = resolveProjectTitle(
+    currentProject.project_id,
+    currentProject.title,
+    inferModelIdFromProject(currentProject),
+  );
+  const categoryLine = t('overview.schemaLine', { id: currentProject.project_id });
   const runStatusKey = runResult?.run_status ?? runStatus;
   const solverStatusKey = runResult?.solver_status;
   const validationStatusKey = runResult?.validation_status;
@@ -40,11 +43,17 @@ export function OverviewTab() {
         <InfoCard title={t('overview.runStatus')} value={runStatusLabel} />
         <InfoCard title={t('overview.solverStatus')} value={solverStatusLabel} />
         <InfoCard title={t('overview.validationStatus')} value={validationStatusLabel} />
-        <InfoCard
-          title={t('overview.description')}
-          value={tModel(descriptor.model_id, 'description', descriptor.description)}
-          wide
-        />
+        {currentProject ? (
+          <InfoCard
+            title={t('overview.description')}
+            value={tModel(
+              inferModelIdFromProject(currentProject),
+              'description',
+              currentProject.project_id,
+            )}
+            wide
+          />
+        ) : null}
       </div>
 
       {runResult && Object.keys(runResult.scalars).length > 0 && (
@@ -166,10 +175,6 @@ export function OverviewTab() {
             <strong className="text-accent">{t('shell.run')}</strong>
             {t('overview.configureHintEnd')}
           </p>
-          <p className="mt-2 text-xs">{t('overview.configPreview')}</p>
-          <pre className="mt-1 p-2 bg-panel-solid rounded text-[10px] overflow-auto max-h-40 border border-subtle">
-            {JSON.stringify(config, null, 2)}
-          </pre>
         </div>
       )}
     </div>

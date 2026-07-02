@@ -1,5 +1,8 @@
 {
+  "case_id": "symmetric_equilibrium",
   "description": "Symmetric abrupt PN junction at equilibrium (Na=Nd=1e16 cm^-3)",
+  "validation_mode": "analytic_abrupt",
+  "category": "equilibrium",
   "metrics": {
     "Vbi": 0.716,
     "W": 7.9e-5,

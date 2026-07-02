@@ -17,7 +17,7 @@ from autosim.pn.schemas import (
 from autosim.pn.validation import (
     analytic_validation_eligible,
     build_validation_report,
-    unavailable_validation_report,
+    skipped_validation_report,
 )
 from autosim.pn.convergence import ConvergenceContext, ConvergenceSpec, build_convergence_summary
 from autosim.pn.status import derive_run_status, derive_solver_status
@@ -185,7 +185,7 @@ def finalize_result(
             Vbi_numeric, W_numeric, W_psi, W_rho, Emax_numeric, analytic
         )
     else:
-        validation = unavailable_validation_report(skip_reason)
+        validation = skipped_validation_report(sim_input, skip_reason)
 
     profile = build_profile(x, psi, material, C, sim_input.exp_clamp)
 

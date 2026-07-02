@@ -44,9 +44,21 @@ export interface ParameterSchema {
 export interface ChartTabSchema {
   id: string;
   label: string;
-  chart_type: 'profiles' | 'time_series' | 'convergence' | 'overview' | 'sweep' | 'iv_curve' | 'line_profile';
+  chart_type:
+    | 'profiles'
+    | 'profiles_combined'
+    | 'profile_single'
+    | 'time_series'
+    | 'convergence'
+    | 'overview'
+    | 'sweep'
+    | 'iv_curve'
+    | 'line_profile'
+    | 'optimization';
   series_names?: string[];
   log_scale?: boolean;
+  viz_id?: string;
+  viz_groups?: string[][];
 }
 
 export interface TreeNodeSchema {
@@ -178,10 +190,17 @@ export interface UnifiedRunResult {
 }
 
 export interface CreateRunRequest {
-  model_id: string;
-  config: Record<string, unknown>;
+  project: Record<string, unknown>;
+  active_study_id?: string | null;
   agent?: string;
   max_trials?: number;
+}
+
+export interface ProjectTemplateListItem {
+  template_id: string;
+  project_id: string;
+  title: string;
+  active_study_id?: string | null;
 }
 
 export interface CreateRunResponse {
@@ -192,12 +211,113 @@ export interface CreateRunResponse {
 
 export type ApiMode = 'mock' | 'live';
 
+export type Workspace = 'simulation' | 'benchmark';
+
+export type OutcomeKind = 'pass' | 'warning' | 'fail';
+
+export type ValidationModeKind = 'analytic_abrupt' | 'numerical_only' | 'validation_unavailable';
+
+export type DisplayCategory =
+  | 'passed'
+  | 'warning'
+  | 'failed'
+  | 'numerical_only'
+  | 'validation_unavailable';
+
+export interface BenchmarkReportListItem {
+  run_id: string;
+  timestamp: string;
+  git_commit: string | null;
+  benchmark_suite: string;
+  output_dir: string;
+  total: number;
+  passed_count: number;
+  warning_count: number;
+  failed_count: number;
+  total_runtime_s: number;
+  overall_passed: boolean;
+}
+
+export interface BenchmarkEnvironment {
+  python_version: string;
+  platform: string;
+  hostname: string | null;
+}
+
+export interface BenchmarkSummary {
+  total: number;
+  passed_count: number;
+  warning_count: number;
+  failed_count: number;
+  total_runtime_s: number;
+  overall_passed: boolean;
+}
+
+export interface BenchmarkCaseReport {
+  case_id: string;
+  config_path: string;
+  reference_path: string;
+  model_type: string;
+  doping_type: string;
+  validation_mode: ValidationModeKind;
+  category: string;
+  description: string;
+  solver_status: string;
+  validation_status: string | null;
+  validation_status_display: string | null;
+  run_status: string;
+  outcome: OutcomeKind;
+  display_category: DisplayCategory;
+  key_metrics: Record<string, number | boolean | null>;
+  reference_metrics: Record<string, number | boolean | null>;
+  relative_errors: Record<string, number | null>;
+  tolerances: Record<string, number>;
+  checks: Record<string, boolean>;
+  warnings: string[];
+  failure_reason: string | null;
+  runtime_s: number;
+  stop_reason: string | null;
+}
+
+export interface BenchmarkReport {
+  schema_version: string;
+  run_id: string;
+  timestamp: string;
+  git_commit: string | null;
+  benchmark_suite: string;
+  autosim_version: string;
+  output_dir: string;
+  environment: BenchmarkEnvironment;
+  summary: BenchmarkSummary;
+  case_results: BenchmarkCaseReport[];
+}
+
 export interface SimApi {
-  listModels(): Promise<ModelDescriptor[]>;
-  getModel(modelId: string): Promise<ModelDescriptor>;
+  listProjectTemplates(): Promise<ProjectTemplateListItem[]>;
+  getProjectTemplate(templateId: string): Promise<import('./project').SimulationProject>;
+  getProjectTreeSchema(project?: import('./project').SimulationProject): Promise<import('./project').ModelTreeSchema>;
+  getProjectParameters(
+    project: import('./project').SimulationProject,
+    treePath: string,
+  ): Promise<import('./project').ProjectParameterSchemaResponse>;
   createRun(request: CreateRunRequest): Promise<CreateRunResponse>;
   getRun(runId: string): Promise<UnifiedRunResult>;
   subscribeRun(runId: string, handlers: StreamHandlers): () => void;
+  listBenchmarkReports(): Promise<BenchmarkReportListItem[]>;
+  getBenchmarkReport(runId: string): Promise<BenchmarkReport>;
+  getBenchmarkReportMarkdown(runId: string): Promise<string>;
+  runBenchmarkSuite(): Promise<BenchmarkRunResponse>;
+}
+
+export interface BenchmarkRunResponse {
+  run_id: string;
+  overall_passed: boolean;
+  total: number;
+  passed_count: number;
+  warning_count: number;
+  failed_count: number;
+  total_runtime_s: number;
+  output_dir: string;
 }
 
 export interface StreamHandlers {
@@ -208,3 +328,5 @@ export interface StreamHandlers {
   onComplete?: (result: UnifiedRunResult) => void;
   onError?: (error: string) => void;
 }
+
+export type { SimulationProject, ModelTreeSchema, ModelTreeNode, VisualizationRecipe } from './project';

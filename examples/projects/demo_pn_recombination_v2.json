@@ -1,0 +1,248 @@
+{
+  "schema_version": "2.0",
+  "project_id": "demo_pn_recombination_v2",
+  "title": "Demo Pn Recombination",
+  "model": {
+    "geometry": {
+      "dimension": "1D",
+      "segments": [
+        {
+          "name": "p_side",
+          "length": 0.0002,
+          "origin": -0.0002
+        },
+        {
+          "name": "n_side",
+          "length": 0.0002,
+          "origin": 0.0
+        }
+      ],
+      "junction_position": 0.0
+    },
+    "domains": [
+      {
+        "domain_id": "semiconductor",
+        "geometry_ref": "full",
+        "label": ""
+      }
+    ],
+    "materials": [
+      {
+        "domain_id": "semiconductor",
+        "material_id": "Si",
+        "temperature_k": 300.0
+      }
+    ],
+    "physics_interfaces": [
+      {
+        "instance_id": "pn_dd",
+        "interface_id": "semiconductor_1d_dd",
+        "domain_ids": [
+          "semiconductor"
+        ],
+        "settings": {
+          "doping": {
+            "type": "abrupt",
+            "Na": 1e+16,
+            "Nd": 1e+16
+          },
+          "carrier_model": "boltzmann",
+          "model_type": "drift_diffusion",
+          "recombination": {
+            "enabled": true,
+            "srh": true,
+            "auger": false,
+            "radiative": false,
+            "tau_n": 1e-06,
+            "tau_p": 1e-06,
+            "n1": 10000000000.0,
+            "p1": 10000000000.0
+          },
+          "breakdown": {
+            "enabled": true,
+            "E_crit": 300000.0,
+            "alpha_model": "chynoweth",
+            "alpha_n": 703000.0,
+            "alpha_p": 1582000.0,
+            "alpha_exp": 1.0
+          }
+        }
+      }
+    ],
+    "variables": [],
+    "boundary_conditions": [
+      {
+        "bc_id": "left_contact",
+        "type": "dirichlet_potential",
+        "boundary": "left",
+        "value": "auto",
+        "physics_ref": null
+      },
+      {
+        "bc_id": "right_contact",
+        "type": "dirichlet_potential",
+        "boundary": "right",
+        "value": "auto",
+        "physics_ref": null
+      }
+    ],
+    "initial_conditions": [],
+    "source_terms": [],
+    "mesh": {
+      "Nx": 120,
+      "type": "uniform",
+      "junction_refinement": {
+        "enabled": false,
+        "ratio": 3.0,
+        "width_frac": 0.1
+      }
+    }
+  },
+  "studies": [
+    {
+      "study_id": "study_parameter_sweep",
+      "study_type": "parameter_sweep",
+      "label": "Parameter Sweep",
+      "physics_interface_ids": [
+        "pn_dd"
+      ],
+      "parameters": {
+        "Vapp": 0.0,
+        "bias_scan": {
+          "enabled": false,
+          "Vapp_min": -1.0,
+          "Vapp_max": 0.5,
+          "Vapp_step": 0.1,
+          "Vapp_list": null,
+          "warm_start": true,
+          "continuation": true
+        },
+        "cv_scan": {
+          "enabled": false,
+          "delta_V": 0.001,
+          "Vapp_min": -1.0,
+          "Vapp_max": 0.0,
+          "Vapp_step": 0.05
+        },
+        "transient": {
+          "enabled": false,
+          "t_max": 1e-09,
+          "dt": 1e-11,
+          "waveform": "step",
+          "Vapp_initial": 0.0,
+          "Vapp_final": 0.5,
+          "pulse_width": 1e-10,
+          "pulse_start": 0.0
+        },
+        "recombination": {
+          "enabled": true,
+          "srh": true,
+          "auger": false,
+          "radiative": false,
+          "tau_n": 1e-06,
+          "tau_p": 1e-06,
+          "n1": 10000000000.0,
+          "p1": 10000000000.0
+        },
+        "breakdown": {
+          "enabled": true,
+          "E_crit": 300000.0,
+          "alpha_model": "chynoweth",
+          "alpha_n": 703000.0,
+          "alpha_p": 1582000.0,
+          "alpha_exp": 1.0
+        },
+        "optimization": {
+          "enabled": false,
+          "design_vars": [],
+          "objectives": [],
+          "max_trials": 20,
+          "method": "random"
+        },
+        "iteration": {
+          "max_trials": 5,
+          "stop_on": "recommend_next"
+        }
+      },
+      "solver_sequence": [
+        {
+          "step_id": "newton_solve",
+          "solver_id": "damped_newton",
+          "settings": {
+            "relative_tol": 0.0005,
+            "max_iter": 200,
+            "damping": 0.5,
+            "exp_clamp": 40.0,
+            "linear_backend": "direct",
+            "adaptive_damping": false,
+            "convergence": {
+              "criterion": "both",
+              "relative_tol": 0.0001,
+              "absolute_tol": null,
+              "scaling_mode": "auto",
+              "residual_scale": null,
+              "solution_scale": null
+            }
+          },
+          "depends_on": []
+        }
+      ],
+      "agent": {
+        "backend": "hybrid",
+        "probe_window": 10
+      }
+    }
+  ],
+  "results": {
+    "output_variables": [
+      {
+        "var_id": "potential",
+        "source": "pn_dd.psi",
+        "label": "Potential \u03c8(x)",
+        "unit": "V",
+        "kind": "profile"
+      },
+      {
+        "var_id": "electric_field",
+        "source": "pn_dd.E",
+        "label": "Electric Field E(x)",
+        "unit": "V/cm",
+        "kind": "profile"
+      },
+      {
+        "var_id": "Vbi",
+        "source": "derived.Vbi",
+        "label": "Built-in Potential",
+        "unit": "V",
+        "kind": "scalar"
+      }
+    ],
+    "visualizations": [
+      {
+        "viz_id": "potential_profile",
+        "chart_type": "line_profile",
+        "tab": {
+          "id": "profiles",
+          "label": "Profiles"
+        },
+        "bindings": {
+          "x": "x",
+          "y": [
+            "potential"
+          ],
+          "x_label": "x (cm)",
+          "y_label": "\u03c8 (V)",
+          "log_scale": false
+        },
+        "implemented": true
+      }
+    ],
+    "postprocessing": [],
+    "reports": []
+  },
+  "active_study_id": "study_parameter_sweep",
+  "metadata": {
+    "description": "",
+    "tags": []
+  }
+}

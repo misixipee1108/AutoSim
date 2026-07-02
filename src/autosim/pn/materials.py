@@ -64,6 +64,7 @@ def silicon_at_T(temperature_k: float) -> MaterialSpec:
         * math.exp(-6726.0 / t)
         * (t / 300.0) ** 1.5
     )
+    mu_scale = (t / 300.0) ** (-2.4)
     return MaterialSpec(
         name="Si",
         temperature_k=t,
@@ -76,4 +77,6 @@ def silicon_at_T(temperature_k: float) -> MaterialSpec:
             "Sze & Ng (2012) Physics of Semiconductor Devices 4th ed. Ch.1; "
             "Green (1990) JAP 67, 2944 ni(T); NIST CODATA 2018"
         ),
+        mu_n=1350.0 * mu_scale,
+        mu_p=480.0 * mu_scale,
     )

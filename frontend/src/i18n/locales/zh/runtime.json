@@ -51,6 +51,23 @@
     "recommend_next": "推荐下一轮",
     "mark_infeasible": "标记不可行"
   },
+  "actionRaw": {
+    "continue": "继续",
+    "early_stop": "提前终止",
+    "adjust_damping": "调整阻尼",
+    "refine_mesh": "细化网格",
+    "adjust_bias_step": "调整偏压步长",
+    "change_initial_guess": "更换初值",
+    "mark_as_infeasible": "标记不可行",
+    "explain_failure": "解释失败",
+    "recommend_next_parameters": "推荐下一轮参数",
+    "switch_solver": "切换求解器",
+    "reduce_bias_step": "减小偏压步长",
+    "increase_damping": "增大阻尼",
+    "adjust_params": "调整参数",
+    "recommend_next": "推荐下一轮",
+    "mark_infeasible": "标记不可行"
+  },
   "dimension": {
     "0D": "零维",
     "1D": "一维",
@@ -60,9 +77,16 @@
   "metrics": {
     "Vbi": "内建电势",
     "W": "耗尽区宽度",
+    "W_psi": "ψ 耗尽区宽度",
+    "W_rho": "ρ 耗尽区宽度",
     "Emax": "最大电场",
     "Cj": "结电容",
+    "J": "电流密度",
+    "M_ionization": "电离积分",
+    "breakdown_risk": "击穿风险",
     "newton_iterations": "牛顿迭代次数",
+    "final_residual_norm": "最终残差范数",
+    "final_delta_norm": "最终步长范数",
     "final_scaled_residual_norm": "最终缩放残差",
     "final_scaled_delta_norm": "最终缩放步长",
     "relative_tol": "相对容差",
@@ -86,6 +110,94 @@
     "scaled_delta": "缩放步长",
     "energy_drift": "能量漂移",
     "W_vs_Vapp": "耗尽区宽度 vs Vapp",
-    "Cj_vs_Vapp": "结电容 vs Vapp"
+    "Cj_vs_Vapp": "结电容 vs Vapp",
+    "Emax_vs_Vapp": "最大电场 vs 偏压",
+    "I_vs_Vapp": "电流密度 vs 偏压",
+    "Iteration": "迭代次数"
+  },
+  "axes": {
+    "x_cm": "x (cm)",
+    "psi_V": "ψ (V)",
+    "Vapp_V": "Vapp (V)",
+    "Emax_Vcm": "Emax (V/cm)",
+    "W_cm": "W (cm)",
+    "time_s": "时间 (s)",
+    "iteration": "迭代次数",
+    "relative_tol": "相对容差",
+    "value": "数值"
+  },
+  "modelType": {
+    "poisson": "泊松",
+    "depletion": "耗尽近似",
+    "drift_diffusion": "漂移-扩散",
+    "transient_dd": "瞬态漂移-扩散"
+  },
+  "dopingType": {
+    "abrupt": "突变结",
+    "linear_graded": "线性渐变",
+    "gaussian": "高斯",
+    "erfc": "Erfc 扩散",
+    "piecewise": "分段",
+    "custom": "自定义",
+    "table": "表格"
+  },
+  "studyType": {
+    "stationary": "稳态",
+    "bias_sweep": "偏压扫描",
+    "cv_sweep": "C-V 扫描",
+    "optimization": "优化",
+    "time_dependent": "瞬态",
+    "parameter_sweep": "参数扫描",
+    "transient": "瞬态"
+  },
+  "validationReason": {
+    "no_analytic_dd": "漂移-扩散模型无解析参考（MVP）",
+    "no_analytic_doping": "该掺杂分布无解析参考",
+    "no_analytic_model": "该模型类型无解析参考",
+    "shockley_ineligible": "不满足 Shockley 验证条件",
+    "shockley_diode": "Shockley 二极管验证"
+  },
+  "agentReason": {
+    "nan_detected": "牛顿迭代中出现 NaN",
+    "negative_carrier": "检测到负载流子浓度",
+    "exp_clamped": "玻尔兹曼指数被截断；请减小阻尼或偏压步长",
+    "bias_stall": "偏压扫描中牛顿迭代停滞；请减小偏压步长",
+    "newton_stalled": "牛顿残差停滞；请细化结区网格",
+    "slow_convergence": "收敛较慢但仍在推进",
+    "newton_progressing": "牛顿迭代正常推进",
+    "approx_convergence": "近似收敛；可细化网格以进一步降低缩放残差",
+    "converged_ok": "仿真已成功收敛",
+    "breakdown_near": "电场接近击穿极限",
+    "high_risk": "收敛风险较高",
+    "jacobian_ill": "雅可比矩阵病态",
+    "rules_veto": "规则层否决"
+  },
+  "paramKeys": {
+    "Na": "受主 Na",
+    "Nd": "施主 Nd",
+    "Nx": "网格点数",
+    "Vapp": "外加偏压",
+    "damping": "阻尼因子",
+    "tol": "容差",
+    "solver": "求解器",
+    "bias_scan": "偏压扫描",
+    "junction_refinement": "结区加密"
+  },
+  "outcome": {
+    "pass": "通过",
+    "warning": "警告",
+    "fail": "失败"
+  },
+  "benchmarkCategory": {
+    "passed": "通过",
+    "warning": "警告",
+    "failed": "失败",
+    "numerical_only": "仅数值验证",
+    "validation_unavailable": "无解析验证"
+  },
+  "validationMode": {
+    "analytic_abrupt": "解析验证（突变结）",
+    "numerical_only": "数值参考",
+    "validation_unavailable": "验证不可用"
   }
 }

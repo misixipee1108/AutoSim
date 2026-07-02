@@ -1,0 +1,39 @@
+{
+  "interface_id": "semiconductor_1d_dd",
+  "name": "Semiconductor 1D Drift-Diffusion",
+  "category": "semiconductor",
+  "dimension": "1D",
+  "governing_equations": [
+    "Poisson + continuity equations (Gummel/Newton)"
+  ],
+  "unknowns": [
+    {"name": "psi", "label": "Electrostatic Potential", "unit": "V"},
+    {"name": "n", "label": "Electron Density", "unit": "cm⁻³"},
+    {"name": "p", "label": "Hole Density", "unit": "cm⁻³"}
+  ],
+  "material_requirements": ["eps_r", "ni", "mu_n", "mu_p", "q", "Vt"],
+  "boundary_condition_types": [
+    {"type_id": "dirichlet_potential", "label": "Dirichlet Potential"},
+    {"type_id": "neumann_flux", "label": "Neumann Flux"}
+  ],
+  "derived_variables": [
+    {"name": "E", "label": "Electric Field", "unit": "V/cm"},
+    {"name": "J", "label": "Current Density", "unit": "A/cm²"}
+  ],
+  "tree_parameter_groups": ["Physics", "Doping", "Recombination"],
+  "parameter_schema": [
+    {"name": "settings.model_type", "label": "Physics Model", "type": "select", "default": "drift_diffusion", "group": "Physics", "options": [{"value": "drift_diffusion", "label": "Drift-Diffusion"}, {"value": "transient_dd", "label": "Transient DD"}]},
+    {"name": "settings.doping.type", "label": "Doping Profile", "type": "select", "default": "abrupt", "group": "Doping", "options": [{"value": "abrupt", "label": "Abrupt"}, {"value": "linear_graded", "label": "Linear Graded"}, {"value": "gaussian", "label": "Gaussian"}, {"value": "erfc", "label": "Erfc"}, {"value": "piecewise", "label": "Piecewise"}]},
+    {"name": "settings.doping.Na", "label": "Acceptor Na", "type": "number", "unit": "cm⁻³", "default": 1e18, "min": 1e14, "max": 1e20, "group": "Doping"},
+    {"name": "settings.doping.Nd", "label": "Donor Nd", "type": "number", "unit": "cm⁻³", "default": 1e16, "min": 1e14, "max": 1e20, "group": "Doping"},
+    {"name": "settings.recombination.enabled", "label": "Recombination", "type": "boolean", "default": false, "group": "Recombination"},
+    {"name": "settings.recombination.srh", "label": "SRH", "type": "boolean", "default": true, "group": "Recombination"},
+    {"name": "settings.recombination.tau_n", "label": "τn", "type": "number", "unit": "s", "default": 1e-6, "group": "Recombination"},
+    {"name": "settings.recombination.tau_p", "label": "τp", "type": "number", "unit": "s", "default": 1e-6, "group": "Recombination"}
+  ],
+  "default_instance_config": {
+    "model_type": "drift_diffusion",
+    "doping": {"type": "abrupt", "Na": 1e18, "Nd": 1e16},
+    "recombination": {"enabled": false, "srh": true, "tau_n": 1e-6, "tau_p": 1e-6}
+  }
+}

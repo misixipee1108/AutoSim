@@ -1,0 +1,71 @@
+{
+  "schema_version": "2.0",
+  "project_id": "pn_si_equilibrium_demo",
+  "title": "1D Si PN Junction — Stationary Poisson",
+  "model": {
+    "geometry": {
+      "dimension": "1D",
+      "segments": [
+        {"name": "p_side", "length": 0.0002, "origin": -0.0002},
+        {"name": "n_side", "length": 0.0002, "origin": 0.0}
+      ],
+      "junction_position": 0.0
+    },
+    "domains": [{"domain_id": "semiconductor", "geometry_ref": "full"}],
+    "materials": [{"domain_id": "semiconductor", "material_id": "Si", "temperature_k": 300.0}],
+    "physics_interfaces": [{
+      "instance_id": "pn_poisson",
+      "interface_id": "semiconductor_1d_poisson",
+      "domain_ids": ["semiconductor"],
+      "settings": {
+        "doping": {"type": "abrupt", "Na": 1e18, "Nd": 1e16},
+        "carrier_model": "boltzmann",
+        "model_type": "poisson"
+      }
+    }],
+    "boundary_conditions": [
+      {"bc_id": "left_contact", "type": "dirichlet_potential", "boundary": "left", "value": "auto"},
+      {"bc_id": "right_contact", "type": "dirichlet_potential", "boundary": "right", "value": "auto"}
+    ],
+    "mesh": {"Nx": 400, "type": "uniform"}
+  },
+  "studies": [{
+    "study_id": "stat_equilibrium",
+    "label": "Stationary Equilibrium",
+    "study_type": "stationary",
+    "physics_interface_ids": ["pn_poisson"],
+    "parameters": {"Vapp": 0.0},
+    "solver_sequence": [{
+      "step_id": "newton_solve",
+      "solver_id": "damped_newton",
+      "settings": {
+        "relative_tol": 0.0001,
+        "max_iter": 200,
+        "damping": 0.5,
+        "convergence": {"criterion": "both", "scaling_mode": "auto"}
+      }
+    }],
+    "agent": {"backend": "rules", "probe_window": 10}
+  }],
+  "results": {
+    "output_variables": [
+      {"var_id": "potential", "source": "pn_poisson.psi", "label": "Potential ψ(x)", "unit": "V", "kind": "profile"},
+      {"var_id": "Vbi", "source": "derived.Vbi", "label": "Built-in Potential", "unit": "V", "kind": "scalar"}
+    ],
+    "visualizations": [
+      {
+        "viz_id": "potential_profile",
+        "chart_type": "line_profile",
+        "tab": {"id": "profiles", "label": "Profiles"},
+        "bindings": {"x": "x", "y": ["potential", "electric_field"], "x_label": "x (cm)", "y_label": "ψ (V)"}
+      },
+      {
+        "viz_id": "convergence_chart",
+        "chart_type": "convergence",
+        "tab": {"id": "convergence", "label": "Convergence"},
+        "bindings": {"y": ["scaled_residual", "scaled_delta"]}
+      }
+    ]
+  },
+  "active_study_id": "stat_equilibrium"
+}

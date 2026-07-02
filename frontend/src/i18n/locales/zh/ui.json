@@ -1,6 +1,7 @@
 {
   "shell": {
     "model": "模型",
+    "projectTemplate": "项目模板",
     "agent": "智能体",
     "liveApi": "在线 API",
     "run": "运行",
@@ -9,10 +10,14 @@
     "langZh": "中文",
     "import": "导入",
     "exportConfig": "导出配置",
+    "exportProject": "导出项目",
+    "exportYaml": "导出 YAML",
     "exportResult": "导出结果",
-    "importFailed": "导入失败：无效的 JSON",
+    "importFailed": "导入失败：无效的 JSON 或 YAML",
     "themeLight": "白天",
-    "themeDark": "夜晚"
+    "themeDark": "夜晚",
+    "workspaceSimulation": "仿真",
+    "workspaceBenchmark": "基准测试"
   },
   "agentBackend": {
     "rules": "规则",
@@ -26,6 +31,7 @@
   },
   "panel": {
     "modelTree": "模型树",
+    "loadingProject": "正在加载项目…",
     "solverStatus": "求解器状态",
     "agentDecisions": "智能体决策",
     "probes": "探针",
@@ -34,6 +40,74 @@
   "form": {
     "parameters": "参数",
     "noParameters": "此节点下无参数。"
+  },
+  "projectTree": {
+    "model": "模型",
+    "model.geometry": "几何",
+    "model.domain": "域",
+    "model.material": "材料",
+    "model.physics_interfaces": "物理场接口",
+    "physicsField": {
+      "semiconductor": "半导体",
+      "mechanics": "力学",
+      "thermal": "热学",
+      "optics": "光学"
+    },
+    "group": {
+      "physics": "物理模型",
+      "doping": "掺杂",
+      "recombination": "复合",
+      "body": "刚体",
+      "drag": "阻力",
+      "integration": "积分"
+    },
+    "model.variables": "变量",
+    "model.boundary_conditions": "边界条件",
+    "model.initial_conditions": "初始条件",
+    "model.source_terms": "源项",
+    "model.mesh": "网格",
+    "studies": "仿真求解",
+    "studies.stat_equilibrium": "稳态平衡",
+    "studies.stat_equilibrium.study_params": "研究设置",
+    "studies.study_parameter_sweep": "参数扫描",
+    "studies.study_bias_sweep": "偏压扫描",
+    "studies.study_cv_sweep": "C-V 扫描",
+    "studies.study_optimization": "优化",
+    "studies.study_transient": "瞬态分析",
+    "studyParams": "研究设置",
+    "solverSequence": "求解器序列",
+    "studyAgent": "智能体",
+    "schemaVersion": "仿真项目 v2",
+    "expandNode": "展开",
+    "collapseNode": "折叠",
+    "studyLabels": {
+      "parameterSweep": "参数扫描",
+      "biasSweep": "偏压扫描",
+      "cvSweep": "C-V 扫描",
+      "optimization": "优化",
+      "timeDependent": "瞬态分析",
+      "timeDependentFall": "自由落体瞬态",
+      "stationaryEquilibrium": "稳态平衡"
+    },
+    "studyTypes": {
+      "stationary": "稳态",
+      "parameter_sweep": "参数扫描",
+      "bias_sweep": "偏压扫描",
+      "cv_sweep": "C-V 扫描",
+      "optimization": "优化",
+      "time_dependent": "瞬态",
+      "transient": "瞬态"
+    },
+    "interfaces": {
+      "semiconductor_1d_poisson": "半导体一维泊松",
+      "semiconductor_1d_dd": "半导体一维漂移-扩散",
+      "mechanics_0d_falling_body": "自由落体"
+    },
+    "results": "结果",
+    "results.output_variables": "输出变量",
+    "results.visualizations": "可视化",
+    "results.postprocessing": "后处理",
+    "results.reports": "报告"
   },
   "viewport": {
     "loadingModel": "正在加载模型…",
@@ -48,6 +122,7 @@
     "validationStatus": "验证状态",
     "description": "描述",
     "idle": "空闲",
+    "schemaLine": "仿真项目 v2 · {id}",
     "keyMetrics": "关键指标",
     "trialsSummary": "试验摘要",
     "validation": "验证",
@@ -55,6 +130,31 @@
     "configureHint": "在左侧面板配置参数，然后点击",
     "configureHintEnd": "。",
     "configPreview": "当前配置预览："
+  },
+  "charts": {
+    "overview": "概览",
+    "profiles": "分布曲线",
+    "carriers": "载流子",
+    "convergence": "收敛曲线",
+    "sweep": "偏压扫描",
+    "cv_curve": "C-V 曲线",
+    "transient": "瞬态响应",
+    "optimization": "优化",
+    "time_series": "时间序列"
+  },
+  "templates": {
+    "pn_stationary": "一维硅 PN 结 — 稳态泊松",
+    "falling_body": "自由落体 — 瞬态分析"
+  },
+  "projectTitles": {
+    "pn_si_equilibrium_demo": "一维硅 PN 结 — 稳态泊松",
+    "demo_pn_graded_v2": "演示：线性渐变 PN 结",
+    "demo_pn_si_equilibrium_v2": "硅 PN 结平衡态",
+    "demo_pn_si_bias_sweep_v2": "硅 PN 结偏压扫描",
+    "demo_pn_iv_v2": "PN 结 I-V 曲线",
+    "demo_pn_cv_v2": "PN 结 C-V 曲线",
+    "demo_pn_optimize_v2": "PN 结优化",
+    "demo_falling_block_v2": "自由落体演示"
   },
   "table": {
     "trial": "试验",
@@ -110,7 +210,10 @@
     "stopped": "用户停止运行",
     "expand": "展开",
     "collapse": "折叠",
-    "count": "（{count} 条）"
+    "count": "（{count} 条）",
+    "liveApiFallbackTemplates": "在线 API 不可用，使用本地模板列表（{detail}）",
+    "liveApiFallbackTemplate": "在线 API 不可用，已从本地 mock 加载模板「{id}」（{detail}）",
+    "liveApiFallbackRun": "在线 API 不可用，使用本地 mock 仿真器运行。"
   },
   "history": {
     "title": "运行历史",
@@ -118,18 +221,27 @@
     "status": "状态",
     "model": "模型",
     "compare": "对比",
-    "view": "查看"
+    "view": "查看",
+    "selectCompare": "勾选以叠加对比（最多 4 个）",
+    "compareOverlay": "ψ(x) 叠加对比",
+    "clearCompare": "清除选择"
   },
   "task": {
     "queue": "任务队列",
     "running": "运行中",
-    "idle": "空闲"
+    "idle": "空闲",
+    "benchmarkRunning": "基准测试运行中",
+    "pleaseWait": "请稍候…"
   },
   "chart": {
     "noProfile": "无分布曲线数据",
     "noTimeSeries": "无时间序列数据",
     "noConvergence": "无收敛数据 — 运行仿真后可实时查看",
     "noSweep": "无偏压扫描数据。请启用偏压扫描并运行仿真。",
+    "noOptimization": "无优化试验。请启用优化并运行搜索。",
+    "optimizationScatter": "优化试验散点图 (Emax vs W)",
+    "trialIndex": "试验",
+    "trialStatus": "状态",
     "axisX": "x",
     "axisStep": "步数",
     "axisTime": "时间 (s)",
@@ -144,5 +256,78 @@
     "dimensionMismatch": "单位量纲与此字段不匹配",
     "outOfRange": "数值超出允许范围",
     "canonicalHint": "标准单位：{unit}"
+  },
+  "benchmark": {
+    "title": "基准测试报告",
+    "reportList": "报告列表",
+    "refresh": "刷新",
+    "runSuite": "运行套件",
+    "running": "运行中…",
+    "runComplete": "基准测试完成：{runId}（{passed}/{total} 通过）",
+    "runFailed": "基准测试失败：{message}",
+    "noReports": "未找到基准测试报告。请运行基准套件生成报告。",
+    "loading": "正在加载基准测试报告…",
+    "selectReport": "请从左侧列表选择报告",
+    "loadFailed": "加载基准测试报告失败：{message}",
+    "loaded": "已加载基准测试报告：{runId}",
+    "totalCases": "用例总数",
+    "passed": "通过",
+    "warnings": "警告",
+    "failed": "失败",
+    "totalRuntime": "总耗时",
+    "overall": "总体结论",
+    "overallPass": "通过",
+    "overallFail": "未通过",
+    "gitCommit": "Git 提交",
+    "timestamp": "运行时间",
+    "suite": "测试套件",
+    "version": "AutoSim 版本",
+    "python": "Python",
+    "platform": "平台",
+    "hostname": "主机名",
+    "outputDir": "输出目录",
+    "caseResults": "用例结果",
+    "filterCategory": "类别",
+    "filterModelType": "模型类型",
+    "filterDopingType": "掺杂类型",
+    "filterFailureReason": "失败原因",
+    "filterFailurePlaceholder": "搜索失败原因…",
+    "filterAll": "全部",
+    "noCasesMatch": "没有符合当前筛选条件的用例",
+    "colCaseId": "用例 ID",
+    "colModelType": "模型",
+    "colDopingType": "掺杂",
+    "colCategory": "类别",
+    "colSolverStatus": "求解器",
+    "colValidationStatus": "验证",
+    "colRunStatus": "运行",
+    "colKeyMetrics": "关键指标",
+    "colRelError": "相对误差/容差",
+    "colWarnings": "警告",
+    "colFailureReason": "失败原因",
+    "colRuntime": "耗时 (s)",
+    "referenceMetrics": "参考指标",
+    "checks": "检查项",
+    "validationMode": "验证模式",
+    "outcome": "结果",
+    "tabMarkdown": "报告预览",
+    "tabJson": "JSON 数据"
+  },
+  "vizOptions": {
+    "title": "可视化选项",
+    "groupProfiles": "分布曲线子图",
+    "groupConvergence": "收敛与扫描",
+    "groupTimeSeries": "时间序列",
+    "hintIdle": "运行仿真后在中间区域查看图表；未运行时显示占位说明。",
+    "hintRunning": "仿真运行中，收敛曲线将实时更新。",
+    "layoutMode": "布局模式",
+    "layoutSeparate": "分窗显示",
+    "layoutCombined": "合并显示",
+    "mergeSection": "合并到同图",
+    "mergeSelected": "合并选中到同图",
+    "splitGroup": "拆分",
+    "chartGroup": "图 {n}",
+    "mergeHint": "勾选多个物理量后点击合并；仅单位/坐标兼容的变量可合并。",
+    "mergeIncompatible": "所选变量单位或坐标类型不兼容，无法合并到同一子图。"
   }
 }

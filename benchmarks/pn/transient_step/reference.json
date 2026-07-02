@@ -1,5 +1,8 @@
 {
+  "case_id": "transient_step",
+  "description": "Transient step completes with time series",
+  "validation_mode": "validation_unavailable",
+  "category": "transient",
   "converged": true,
-  "min_time_steps": 2,
-  "description": "Transient step completes with time series"
+  "min_time_steps": 2
 }

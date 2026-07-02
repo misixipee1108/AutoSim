@@ -3,26 +3,15 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../store/useAppStore';
 
 export function useModels() {
-  const loadModels = useAppStore((s) => s.loadModels);
-  const models = useAppStore((s) => s.models);
+  const loadProjectTemplates = useAppStore((s) => s.loadProjectTemplates);
+  const loadProjectTemplate = useAppStore((s) => s.loadProjectTemplate);
 
   useEffect(() => {
-    loadModels();
-  }, [loadModels]);
-
-  return models;
-}
-
-export function useCurrentModel() {
-  return useAppStore(
-    useShallow((s) => ({
-      descriptor: s.currentDescriptor,
-      modelId: s.currentModelId,
-      config: s.config,
-      selectModel: s.selectModel,
-      setConfigValue: s.setConfigValue,
-    })),
-  );
+    void Promise.allSettled([
+      loadProjectTemplates(),
+      loadProjectTemplate('pn_stationary'),
+    ]);
+  }, [loadProjectTemplates, loadProjectTemplate]);
 }
 
 export function useRun() {

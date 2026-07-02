@@ -1,0 +1,12 @@
+model_type: poisson
+material: Si
+Na: 1.0e18
+Nd: 1.0e16
+Nx: 400
+Vapp: 0.0
+tol: 1.0e-3
+max_iter: 250
+damping: 0.3
+initial_guess_variants: [depletion, perturbed]
+sources:
+  - "Internal Newton initial-guess stability test"

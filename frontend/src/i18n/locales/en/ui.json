@@ -1,6 +1,7 @@
 {
   "shell": {
     "model": "Model",
+    "projectTemplate": "Project",
     "agent": "Agent",
     "liveApi": "Live API",
     "run": "Run",
@@ -9,10 +10,14 @@
     "langZh": "中文",
     "import": "Import",
     "exportConfig": "Export Config",
+    "exportProject": "Export Project",
+    "exportYaml": "Export YAML",
     "exportResult": "Export Result",
-    "importFailed": "Import failed: invalid JSON",
+    "importFailed": "Import failed: invalid JSON or YAML",
     "themeLight": "Day",
-    "themeDark": "Night"
+    "themeDark": "Night",
+    "workspaceSimulation": "Simulation",
+    "workspaceBenchmark": "Benchmark"
   },
   "agentBackend": {
     "rules": "Rules",
@@ -26,6 +31,7 @@
   },
   "panel": {
     "modelTree": "Model Tree",
+    "loadingProject": "Loading project…",
     "solverStatus": "Solver Status",
     "agentDecisions": "Agent Decisions",
     "probes": "Probes",
@@ -34,6 +40,74 @@
   "form": {
     "parameters": "Parameters",
     "noParameters": "No parameters in this section."
+  },
+  "projectTree": {
+    "model": "Model",
+    "model.geometry": "Geometry",
+    "model.domain": "Domain",
+    "model.material": "Material",
+    "model.physics_interfaces": "Physics Interfaces",
+    "physicsField": {
+      "semiconductor": "Semiconductor",
+      "mechanics": "Mechanics",
+      "thermal": "Thermal",
+      "optics": "Optics"
+    },
+    "group": {
+      "physics": "Physics Model",
+      "doping": "Doping",
+      "recombination": "Recombination",
+      "body": "Body",
+      "drag": "Drag",
+      "integration": "Integration"
+    },
+    "model.variables": "Variables",
+    "model.boundary_conditions": "Boundary Conditions",
+    "model.initial_conditions": "Initial Conditions",
+    "model.source_terms": "Source Terms",
+    "model.mesh": "Mesh",
+    "studies": "Simulation",
+    "studies.stat_equilibrium": "Stationary Equilibrium",
+    "studies.stat_equilibrium.study_params": "Study Settings",
+    "studies.study_parameter_sweep": "Parameter Sweep",
+    "studies.study_bias_sweep": "Bias Sweep",
+    "studies.study_cv_sweep": "C-V Sweep",
+    "studies.study_optimization": "Optimization",
+    "studies.study_transient": "Time Dependent",
+    "studyParams": "Study Settings",
+    "solverSequence": "Solver Sequence",
+    "studyAgent": "Agent",
+    "schemaVersion": "SimulationProject v2",
+    "expandNode": "Expand",
+    "collapseNode": "Collapse",
+    "studyLabels": {
+      "parameterSweep": "Parameter Sweep",
+      "biasSweep": "Bias Sweep",
+      "cvSweep": "C-V Sweep",
+      "optimization": "Optimization",
+      "timeDependent": "Time Dependent",
+      "timeDependentFall": "Time Dependent Fall",
+      "stationaryEquilibrium": "Stationary Equilibrium"
+    },
+    "studyTypes": {
+      "stationary": "Stationary",
+      "parameter_sweep": "Parameter Sweep",
+      "bias_sweep": "Bias Sweep",
+      "cv_sweep": "C-V Sweep",
+      "optimization": "Optimization",
+      "time_dependent": "Time Dependent",
+      "transient": "Transient"
+    },
+    "interfaces": {
+      "semiconductor_1d_poisson": "Semiconductor 1D Poisson",
+      "semiconductor_1d_dd": "Semiconductor 1D Drift-Diffusion",
+      "mechanics_0d_falling_body": "Falling Body"
+    },
+    "results": "Results",
+    "results.output_variables": "Output Variables",
+    "results.visualizations": "Visualizations",
+    "results.postprocessing": "Postprocessing",
+    "results.reports": "Reports"
   },
   "viewport": {
     "loadingModel": "Loading model...",
@@ -48,6 +122,7 @@
     "validationStatus": "Validation Status",
     "description": "Description",
     "idle": "idle",
+    "schemaLine": "SimulationProject v2 · {id}",
     "keyMetrics": "Key Metrics",
     "trialsSummary": "Trials Summary",
     "validation": "Validation",
@@ -55,6 +130,31 @@
     "configureHint": "Configure parameters in the left panel and click",
     "configureHintEnd": ".",
     "configPreview": "Current config preview:"
+  },
+  "charts": {
+    "overview": "Overview",
+    "profiles": "Profiles",
+    "carriers": "Carriers",
+    "convergence": "Convergence",
+    "sweep": "Bias Sweep",
+    "cv_curve": "C-V Curve",
+    "transient": "Transient",
+    "optimization": "Optimization",
+    "time_series": "Time Series"
+  },
+  "templates": {
+    "pn_stationary": "1D Si PN Junction — Stationary Poisson",
+    "falling_body": "Falling Body — Time Dependent"
+  },
+  "projectTitles": {
+    "pn_si_equilibrium_demo": "1D Si PN Junction — Stationary Poisson",
+    "demo_pn_graded_v2": "Demo PN Graded Junction",
+    "demo_pn_si_equilibrium_v2": "Si PN Equilibrium",
+    "demo_pn_si_bias_sweep_v2": "Si PN Bias Sweep",
+    "demo_pn_iv_v2": "PN I-V Curve",
+    "demo_pn_cv_v2": "PN C-V Curve",
+    "demo_pn_optimize_v2": "PN Optimization",
+    "demo_falling_block_v2": "Falling Block Demo"
   },
   "table": {
     "trial": "Trial",
@@ -110,7 +210,10 @@
     "stopped": "Run stopped by user",
     "expand": "Expand",
     "collapse": "Collapse",
-    "count": "({count})"
+    "count": "({count})",
+    "liveApiFallbackTemplates": "Live API unavailable for templates; using local list ({detail})",
+    "liveApiFallbackTemplate": "Live API unavailable; loaded template \"{id}\" from local mock ({detail})",
+    "liveApiFallbackRun": "Live API unavailable; running with local mock simulator."
   },
   "history": {
     "title": "Run History",
@@ -118,18 +221,27 @@
     "status": "Status",
     "model": "Model",
     "compare": "Compare",
-    "view": "View"
+    "view": "View",
+    "selectCompare": "Select for overlay compare (max 4)",
+    "compareOverlay": "Compare ψ(x) Overlay",
+    "clearCompare": "Clear selection"
   },
   "task": {
     "queue": "Task queue",
     "running": "Running",
-    "idle": "Idle"
+    "idle": "Idle",
+    "benchmarkRunning": "Benchmark suite running",
+    "pleaseWait": "please wait…"
   },
   "chart": {
     "noProfile": "No profile data",
     "noTimeSeries": "No time series data",
     "noConvergence": "No convergence data — run simulation to see live updates",
     "noSweep": "No bias sweep data. Enable bias scan and run a simulation.",
+    "noOptimization": "No optimization trials. Enable optimization and run a search.",
+    "optimizationScatter": "Optimization Trial Scatter (Emax vs W)",
+    "trialIndex": "Trial",
+    "trialStatus": "Status",
     "axisX": "x",
     "axisStep": "Step",
     "axisTime": "Time (s)",
@@ -144,5 +256,78 @@
     "dimensionMismatch": "Unit dimension does not match this field",
     "outOfRange": "Value out of allowed range",
     "canonicalHint": "canonical: {unit}"
+  },
+  "benchmark": {
+    "title": "Benchmark Report",
+    "reportList": "Reports",
+    "refresh": "Refresh",
+    "runSuite": "Run Suite",
+    "running": "Running…",
+    "runComplete": "Benchmark complete: {runId} ({passed}/{total} passed)",
+    "runFailed": "Benchmark run failed: {message}",
+    "noReports": "No benchmark reports found. Run the benchmark suite to generate reports.",
+    "loading": "Loading benchmark report…",
+    "selectReport": "Select a report from the list",
+    "loadFailed": "Failed to load benchmark reports: {message}",
+    "loaded": "Loaded benchmark report: {runId}",
+    "totalCases": "Total Cases",
+    "passed": "Passed",
+    "warnings": "Warnings",
+    "failed": "Failed",
+    "totalRuntime": "Total Runtime",
+    "overall": "Overall",
+    "overallPass": "PASS",
+    "overallFail": "FAIL",
+    "gitCommit": "Git Commit",
+    "timestamp": "Timestamp",
+    "suite": "Suite",
+    "version": "AutoSim Version",
+    "python": "Python",
+    "platform": "Platform",
+    "hostname": "Hostname",
+    "outputDir": "Output Directory",
+    "caseResults": "Case Results",
+    "filterCategory": "Category",
+    "filterModelType": "Model Type",
+    "filterDopingType": "Doping Type",
+    "filterFailureReason": "Failure Reason",
+    "filterFailurePlaceholder": "Search failure reason…",
+    "filterAll": "All",
+    "noCasesMatch": "No cases match the current filters",
+    "colCaseId": "Case ID",
+    "colModelType": "Model",
+    "colDopingType": "Doping",
+    "colCategory": "Category",
+    "colSolverStatus": "Solver",
+    "colValidationStatus": "Validation",
+    "colRunStatus": "Run",
+    "colKeyMetrics": "Key Metrics",
+    "colRelError": "Rel. Error / Tol.",
+    "colWarnings": "Warnings",
+    "colFailureReason": "Failure Reason",
+    "colRuntime": "Time (s)",
+    "referenceMetrics": "Reference Metrics",
+    "checks": "Checks",
+    "validationMode": "Validation Mode",
+    "outcome": "Outcome",
+    "tabMarkdown": "Markdown",
+    "tabJson": "JSON"
+  },
+  "vizOptions": {
+    "title": "Visualization Options",
+    "groupProfiles": "Profile Subplots",
+    "groupConvergence": "Convergence & Sweeps",
+    "groupTimeSeries": "Time Series",
+    "hintIdle": "Run a simulation to view charts in the center panel.",
+    "hintRunning": "Simulation running — convergence chart updates live.",
+    "layoutMode": "Layout Mode",
+    "layoutSeparate": "Separate Tabs",
+    "layoutCombined": "Combined Tab",
+    "mergeSection": "Merge Into Same Plot",
+    "mergeSelected": "Merge Selected",
+    "splitGroup": "Split",
+    "chartGroup": "Plot {n}",
+    "mergeHint": "Select multiple quantities and merge; only compatible units/scales can share a subplot.",
+    "mergeIncompatible": "Selected quantities have incompatible units or axis types."
   }
 }

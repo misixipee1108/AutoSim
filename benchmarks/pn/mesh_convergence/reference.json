@@ -1,9 +1,30 @@
 {
+
+  "case_id": "mesh_convergence",
+
+  "description": "Mesh density convergence for Vbi across Nx = 50,100,200,400,800",
+
+  "validation_mode": "analytic_abrupt",
+
+  "category": "mesh",
+
   "metrics": {
-    "Vbi": 0.837
+
+    "Vbi": 0.835
+
   },
+
   "tolerances": {
+
     "Vbi": 0.05
+
   },
+
+  "Nx_list": [50, 100, 200, 400, 800],
+
+  "max_Vbi_spread": 0.02,
+
   "converged": true
+
 }
+

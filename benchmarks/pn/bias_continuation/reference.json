@@ -1,6 +1,9 @@
 {
+  "case_id": "bias_continuation",
+  "description": "Bias sweep with warm start; at least final point converges",
+  "validation_mode": "validation_unavailable",
+  "category": "sweep",
   "converged": true,
   "allow_partial_converged": true,
-  "tolerances": {},
-  "description": "Bias sweep with warm start; at least final point converges"
+  "tolerances": {}
 }

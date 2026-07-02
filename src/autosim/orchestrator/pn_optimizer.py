@@ -144,6 +144,8 @@ def run_pn_optimization(base_input: PnSimInput) -> tuple[list[PnTrialResult], Pn
 
     if spec.method == "optuna":
         return _run_optuna_optimization(base_input, spec)
+    if spec.method == "genetic":
+        return _run_genetic_optimization(base_input, spec)
 
     rng = random.Random(42)
     param_sets: list[dict[str, Any]]
@@ -203,4 +205,55 @@ def _run_optuna_optimization(
 
     study = optuna.create_study(direction="minimize")
     study.optimize(objective, n_trials=spec.max_trials)
+    return results, best
+
+
+def _run_genetic_optimization(
+    base_input: PnSimInput,
+    spec: PnOptimizationSpec,
+) -> tuple[list[PnTrialResult], PnTrialResult | None]:
+    """Simple genetic algorithm over design variables."""
+    if not spec.design_vars:
+        result = run_pn_trial(base_input)
+        return [result], result
+
+    rng = random.Random(42)
+    pop_size = max(4, min(spec.max_trials // 2, 20))
+    generations = max(1, spec.max_trials // pop_size)
+    population = [_sample_params(spec.design_vars, rng) for _ in range(pop_size)]
+    results: list[PnTrialResult] = []
+    best: PnTrialResult | None = None
+    best_score = float("inf")
+
+    def evaluate(params: dict[str, Any]) -> tuple[PnTrialResult, float]:
+        nonlocal best, best_score
+        trial_input = base_input.model_copy_with_params(params)
+        trial_input.bias_scan.enabled = False
+        result = run_pn_trial(trial_input, trial_index=len(results))
+        results.append(result)
+        score = _trial_score(result, spec.objectives)
+        if score < best_score:
+            best_score = score
+            best = result
+        return result, score
+
+    scored = [(p, evaluate(p)[1]) for p in population]
+    for _ in range(generations):
+        scored.sort(key=lambda x: x[1])
+        survivors = [p for p, _ in scored[: max(2, pop_size // 2)]]
+        next_pop: list[dict[str, Any]] = list(survivors)
+        while len(next_pop) < pop_size:
+            a, b = rng.sample(survivors, 2)
+            child = dict(a)
+            for var in spec.design_vars:
+                if rng.random() < 0.5:
+                    child[var.name] = b[var.name]
+                if rng.random() < 0.2:
+                    if var.type == "integer":
+                        child[var.name] = rng.randint(int(var.min), int(var.max))
+                    else:
+                        child[var.name] = rng.uniform(var.min, var.max)
+            next_pop.append(child)
+        scored = [(p, evaluate(p)[1]) for p in next_pop]
+
     return results, best

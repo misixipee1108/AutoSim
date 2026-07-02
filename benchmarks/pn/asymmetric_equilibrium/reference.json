@@ -1,5 +1,8 @@
 {
+  "case_id": "asymmetric_equilibrium",
   "description": "Asymmetric abrupt PN (Na=1e18, Nd=1e16)",
+  "validation_mode": "analytic_abrupt",
+  "category": "equilibrium",
   "metrics": {
     "Vbi": 0.835,
     "W": 3.3e-5,

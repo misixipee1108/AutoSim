@@ -1,6 +1,9 @@
 {
+  "case_id": "cv_reverse",
+  "description": "C-V sweep completes with at least 2 points",
+  "validation_mode": "validation_unavailable",
+  "category": "sweep",
   "converged": true,
   "allow_partial_converged": true,
-  "min_sweep_points": 2,
-  "description": "C-V sweep completes with at least 2 points"
+  "min_sweep_points": 2
 }

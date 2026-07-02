@@ -1,8 +1,9 @@
 import { useAppStore } from '../../store/useAppStore';
 import { useRun } from '../../hooks/useModels';
-import { useLocale, tRuntime, tModel } from '../../i18n';
+import { useLocale, resolveTemplateTitle } from '../../i18n';
 import { useThemeStore } from '../../theme/themeStore';
 import { SelectWithHelp } from '../model/SelectWithHelp';
+import type { SimulationProject } from '../../types';
 
 const STATUS_CLASS: Record<string, string> = {
   pending: 'status-pending',
@@ -14,82 +15,71 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 export function TopToolbar() {
-  const { t, locale, setLocale } = useLocale();
+  const { t, tRuntime, locale, setLocale } = useLocale();
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
-  const models = useAppStore((s) => s.models);
-  const currentModelId = useAppStore((s) => s.currentModelId);
-  const selectModel = useAppStore((s) => s.selectModel);
-  const config = useAppStore((s) => s.config);
-  const setConfig = useAppStore((s) => s.setConfig);
+  const projectTemplates = useAppStore((s) => s.projectTemplates);
+  const currentTemplateId = useAppStore((s) => s.currentTemplateId);
+  const loadProjectTemplate = useAppStore((s) => s.loadProjectTemplate);
+  const importProject = useAppStore((s) => s.importProject);
+  const currentProject = useAppStore((s) => s.currentProject);
   const runResult = useAppStore((s) => s.runResult);
   const agentBackend = useAppStore((s) => s.agentBackend);
   const setAgentBackend = useAppStore((s) => s.setAgentBackend);
   const apiMode = useAppStore((s) => s.apiMode);
   const setApiMode = useAppStore((s) => s.setApiMode);
+  const workspace = useAppStore((s) => s.workspace);
+  const setWorkspace = useAppStore((s) => s.setWorkspace);
   const { isRunning, runStatus, startRun, stopRun } = useRun();
+  const isBenchmark = workspace === 'benchmark';
 
-  const parseConfigText = (text: string, name: string): Record<string, unknown> | null => {
-    try {
-      if (name.endsWith('.yaml') || name.endsWith('.yml')) {
-        const lines = text.split(/\r?\n/);
-        const flat: Record<string, unknown> = {};
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith('#')) continue;
-          const idx = trimmed.indexOf(':');
-          if (idx <= 0) continue;
-          const key = trimmed.slice(0, idx).trim();
-          let val: unknown = trimmed.slice(idx + 1).trim();
-          if (val === 'true') val = true;
-          else if (val === 'false') val = false;
-          else if (typeof val === 'string' && !Number.isNaN(Number(val))) val = Number(val);
-          flat[key] = val;
-        }
-        return flat;
-      }
-      return JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
+  const downloadBlob = (content: string, filename: string, mime: string) => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const importConfig = () => {
+  const importProjectFile = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json,.yaml,.yml';
+    input.accept = '.json';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
-      const parsed = parseConfigText(await file.text(), file.name);
-      if (!parsed) {
+      try {
+        const parsed = JSON.parse(await file.text()) as SimulationProject;
+        if (parsed.schema_version !== '2.0') {
+          window.alert(t('shell.importFailed'));
+          return;
+        }
+        importProject(parsed);
+      } catch {
         window.alert(t('shell.importFailed'));
-        return;
       }
-      setConfig({ ...config, ...parsed });
     };
     input.click();
   };
 
-  const exportConfig = () => {
-    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentModelId ?? 'config'}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportProject = () => {
+    if (!currentProject) return;
+    downloadBlob(
+      JSON.stringify(currentProject, null, 2),
+      `${currentProject.project_id}.json`,
+      'application/json',
+    );
   };
 
   const exportResult = () => {
     if (!runResult) return;
-    const blob = new Blob([JSON.stringify(runResult, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `result_${runResult.run_id}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      JSON.stringify(runResult, null, 2),
+      `result_${runResult.run_id}.json`,
+      'application/json',
+    );
   };
 
   return (
@@ -97,17 +87,40 @@ export function TopToolbar() {
       <span className="text-sm font-bold text-accent tracking-wide">AutoSim</span>
       <span className="divider">|</span>
 
+      <div className="segment-group">
+        <button
+          type="button"
+          disabled={isRunning}
+          onClick={() => setWorkspace('simulation')}
+          className={`segment-btn ${workspace === 'simulation' ? 'segment-btn-active' : ''}`}
+        >
+          {t('shell.workspaceSimulation')}
+        </button>
+        <button
+          type="button"
+          disabled={isRunning}
+          onClick={() => setWorkspace('benchmark')}
+          className={`segment-btn ${workspace === 'benchmark' ? 'segment-btn-active' : ''}`}
+        >
+          {t('shell.workspaceBenchmark')}
+        </button>
+      </div>
+
+      <span className="divider">|</span>
+
+      {!isBenchmark && (
+      <>
       <label className="flex items-center gap-2 text-xs text-muted">
-        {t('shell.model')}
+        {t('shell.projectTemplate')}
         <select
-          value={currentModelId ?? ''}
-          onChange={(e) => selectModel(e.target.value)}
+          value={currentTemplateId}
+          onChange={(e) => loadProjectTemplate(e.target.value)}
           disabled={isRunning}
           className="min-w-[180px]"
         >
-          {models.map((m) => (
-            <option key={m.model_id} value={m.model_id}>
-              {tModel(m.model_id, 'name', m.model_name)}
+          {projectTemplates.map((tpl) => (
+            <option key={tpl.template_id} value={tpl.template_id}>
+              {resolveTemplateTitle(tpl.template_id, tpl.title)}
             </option>
           ))}
         </select>
@@ -129,11 +142,11 @@ export function TopToolbar() {
 
       <div className="flex-1" />
 
-      <button type="button" className="btn-secondary text-xs" disabled={isRunning} onClick={importConfig}>
+      <button type="button" className="btn-secondary text-xs" disabled={isRunning} onClick={importProjectFile}>
         {t('shell.import')}
       </button>
-      <button type="button" className="btn-secondary text-xs" disabled={isRunning} onClick={exportConfig}>
-        {t('shell.exportConfig')}
+      <button type="button" className="btn-secondary text-xs" disabled={isRunning || !currentProject} onClick={exportProject}>
+        {t('shell.exportProject')}
       </button>
       <button type="button" className="btn-secondary text-xs" disabled={!runResult} onClick={exportResult}>
         {t('shell.exportResult')}
@@ -144,6 +157,10 @@ export function TopToolbar() {
           {tRuntime(`status.${runStatus}`, runStatus)}
         </span>
       )}
+      </>
+      )}
+
+      {isBenchmark && <div className="flex-1" />}
 
       <div className="segment-group">
         <button
@@ -193,14 +210,16 @@ export function TopToolbar() {
         {t('shell.liveApi')}
       </label>
 
-      {!isRunning ? (
-        <button type="button" className="btn-primary" onClick={startRun}>
-          {t('shell.run')}
-        </button>
-      ) : (
-        <button type="button" className="btn-secondary" onClick={stopRun}>
-          {t('shell.stop')}
-        </button>
+      {!isBenchmark && (
+        !isRunning ? (
+          <button type="button" className="btn-primary" onClick={startRun}>
+            {t('shell.run')}
+          </button>
+        ) : (
+          <button type="button" className="btn-secondary" onClick={stopRun}>
+            {t('shell.stop')}
+          </button>
+        )
       )}
     </header>
   );

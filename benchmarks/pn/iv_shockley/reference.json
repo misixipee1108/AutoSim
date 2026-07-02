@@ -1,5 +1,10 @@
 {
+  "case_id": "iv_shockley",
+  "description": "Drift-diffusion terminal current vs Shockley diode analytic at Vapp=0.3 V",
+  "validation_mode": "validation_unavailable",
+  "category": "drift_diffusion",
   "converged": true,
-  "tolerances": {},
-  "description": "Drift-diffusion MVP: Poisson converges and J computed"
+  "require_shockley_validation": true,
+  "shockley_j_tol": 5.0,
+  "tolerances": {}
 }

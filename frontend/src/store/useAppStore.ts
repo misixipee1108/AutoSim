@@ -1,14 +1,37 @@
 import { create } from 'zustand';
 import type {
+  BenchmarkReport,
+  BenchmarkReportListItem,
   ConvergenceSeries,
-  ModelDescriptor,
+  ModelTreeSchema,
+  ParameterSchema,
+  ProjectTemplateListItem,
   RunStatus,
+  SimulationProject,
   UnifiedAgentDecision,
   UnifiedProbe,
   UnifiedRunResult,
+  Workspace,
 } from '../types';
-import { createSimApi } from '../api/client';
-import { t, tRuntime } from '../i18n';
+import { createSimApi, FALLBACK_PROJECT_TEMPLATES, getMockProjectTemplate, probeLiveApi } from '../api/client';
+import { t, tRuntime, resolveAgentReason } from '../i18n';
+import { buildMockProjectTree } from '../mocks/projectTree';
+import {
+  findFirstSelectableTreePath,
+  resolveProjectParameters,
+  setProjectValue as applyProjectValue,
+} from '../utils/projectParameters';
+import { buildChartTabs, resolveActiveChartTab, firstProfileTabId } from '../utils/buildChartTabs';
+import {
+  buildDefaultChartGroups,
+  canMergeVizIds,
+  getDefaultEnabledVizIds,
+  getEnabledProfileSeries,
+  shouldFocusConvergenceTab,
+  syncChartGroupsOnToggle,
+  type VizLayoutMode,
+} from '../config/vizCatalog';
+import { inferModelIdFromProject } from '../i18n/resolveLabels';
 
 const PROBE_TO_CONVERGENCE: Record<string, string> = {
   residual_norm: 'residual',
@@ -42,7 +65,7 @@ function appendProbeToConvergence(
       unit: probe.unit ?? '',
       x: [...probe.x],
       y: [...yValues],
-      x_label: 'Iteration',
+      x_label: tRuntime('series.Iteration', 'Iteration'),
     },
   ];
 }
@@ -51,11 +74,12 @@ export type ApiMode = 'mock' | 'live';
 
 interface AppState {
   apiMode: ApiMode;
-  models: ModelDescriptor[];
-  currentModelId: string | null;
-  currentDescriptor: ModelDescriptor | null;
-  config: Record<string, unknown>;
-  selectedTreeNode: string | null;
+  projectTemplates: ProjectTemplateListItem[];
+  currentTemplateId: string;
+  currentProject: SimulationProject | null;
+  projectTreeSchema: ModelTreeSchema | null;
+  projectParameters: ParameterSchema[];
+  selectedTreePath: string | null;
   runId: string | null;
   runStatus: RunStatus | null;
   runResult: UnifiedRunResult | null;
@@ -66,15 +90,34 @@ interface AppState {
   isRunning: boolean;
   agentBackend: string;
   caseHistory: UnifiedRunResult[];
-  quantityDisplay: Record<string, string>;
+  workspace: Workspace;
+  benchmarkReports: BenchmarkReportListItem[];
+  selectedBenchmarkRunId: string | null;
+  benchmarkReport: BenchmarkReport | null;
+  benchmarkMarkdown: string | null;
+  benchmarkLoading: boolean;
+  benchmarkError: string | null;
+  benchmarkRunning: boolean;
+  compareRunIds: string[];
+  liveApiReachable: boolean | null;
+  enabledVizIds: string[];
+  chartReplayKey: number;
+  autoFocusChartOnComplete: boolean;
+  vizLayoutMode: VizLayoutMode;
+  vizChartGroups: string[][];
 
   setApiMode: (mode: ApiMode) => void;
-  loadModels: () => Promise<void>;
-  selectModel: (modelId: string) => Promise<void>;
-  setConfigValue: (name: string, value: unknown) => void;
-  setConfig: (config: Record<string, unknown>) => void;
-  setQuantityDisplay: (name: string, text: string) => void;
-  setSelectedTreeNode: (nodeId: string) => void;
+  setWorkspace: (workspace: Workspace) => void;
+  loadBenchmarkReports: () => Promise<void>;
+  runBenchmarkSuite: () => Promise<void>;
+  selectBenchmarkReport: (runId: string) => Promise<void>;
+  toggleCompareRun: (runId: string) => void;
+  clearCompareRuns: () => void;
+  loadProjectTemplates: () => Promise<void>;
+  loadProjectTemplate: (templateId?: string) => Promise<void>;
+  importProject: (project: SimulationProject) => void;
+  setProjectValue: (path: string, value: unknown) => void;
+  setSelectedTreePath: (path: string) => void;
   setActiveChartTab: (tabId: string) => void;
   setAgentBackend: (backend: string) => void;
   setRunResult: (result: UnifiedRunResult | null) => void;
@@ -82,54 +125,128 @@ interface AppState {
   stopRun: () => void;
   appendLog: (msg: string) => void;
   updateFromStream: (partial: Partial<UnifiedRunResult>) => void;
-}
-
-function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
-  const parts = path.split('.');
-  let cur: unknown = obj;
-  for (const p of parts) {
-    if (cur == null || typeof cur !== 'object') return undefined;
-    cur = (cur as Record<string, unknown>)[p];
-  }
-  return cur;
-}
-
-function buildQuantityDisplay(
-  descriptor: ModelDescriptor,
-  config: Record<string, unknown>,
-): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const p of descriptor.parameters) {
-    if (!p.unit) continue;
-    const v = getNestedValue(config, p.name);
-    if (typeof v === 'number') {
-      out[p.name] = `${v}[${p.unit}]`;
-    }
-  }
-  return out;
-}
-
-function setNested(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
-  const parts = path.split('.');
-  const result = { ...obj };
-  let cursor: Record<string, unknown> = result;
-  for (let i = 0; i < parts.length - 1; i++) {
-    cursor[parts[i]] = { ...(cursor[parts[i]] as Record<string, unknown> ?? {}) };
-    cursor = cursor[parts[i]] as Record<string, unknown>;
-  }
-  cursor[parts[parts.length - 1]] = value;
-  return result;
+  initEnabledVizFromCatalog: (modelId?: string) => void;
+  toggleVizOption: (id: string) => void;
+  setEnabledVizIds: (ids: string[]) => void;
+  setVizLayoutMode: (mode: VizLayoutMode) => void;
+  setVizChartGroups: (groups: string[][]) => void;
+  mergeSelectedVizIds: (vizIds: string[]) => boolean;
+  splitVizToOwnGroup: (vizId: string) => void;
 }
 
 let unsubscribeStream: (() => void) | null = null;
+let liveApiProbePromise: Promise<boolean> | null = null;
+const projectTemplateCache = new Map<string, SimulationProject>();
+
+async function ensureLiveApiReachable(
+  get: () => AppState,
+  set: (partial: Partial<AppState>) => void,
+): Promise<boolean> {
+  if (get().apiMode !== 'live') return true;
+  if (get().liveApiReachable === false) return false;
+  if (get().liveApiReachable === true) return true;
+  if (!liveApiProbePromise) {
+    liveApiProbePromise = probeLiveApi().then((ok) => {
+      set({ liveApiReachable: ok });
+      liveApiProbePromise = null;
+      return ok;
+    });
+  }
+  return liveApiProbePromise;
+}
+
+async function resolveEffectiveApiMode(
+  get: () => AppState,
+  set: (partial: Partial<AppState>) => void,
+): Promise<ApiMode> {
+  if (get().apiMode !== 'live') return 'mock';
+  const reachable = await ensureLiveApiReachable(get, set);
+  return reachable ? 'live' : 'mock';
+}
+
+async function fetchProjectParameters(
+  project: SimulationProject,
+  treePath: string,
+  get: () => AppState,
+  set: (partial: Partial<AppState>) => void,
+): Promise<ParameterSchema[]> {
+  const effectiveMode = await resolveEffectiveApiMode(get, set);
+  if (effectiveMode === 'live') {
+    try {
+      const resp = await createSimApi('live').getProjectParameters(project, treePath);
+      return resp.parameters;
+    } catch {
+      // Fall back to client-side schema when the API is unavailable.
+    }
+  }
+  return resolveProjectParameters(project, treePath);
+}
+
+async function applyProjectToStore(
+  project: SimulationProject,
+  apiMode: ApiMode,
+  set: (partial: Partial<AppState>) => void,
+  get: () => AppState,
+) {
+  const treeSchema =
+    apiMode === 'mock'
+      ? buildMockProjectTree(project)
+      : await createSimApi('live').getProjectTreeSchema(project);
+  const firstPath = findFirstSelectableTreePath(treeSchema);
+  const params = await fetchProjectParameters(project, firstPath, get, set);
+  const modelId = inferModelIdFromProject(project);
+  const enabledVizIds = getDefaultEnabledVizIds(modelId);
+  const vizLayoutMode: VizLayoutMode = 'separate_tabs';
+  const vizChartGroups = buildDefaultChartGroups(modelId, enabledVizIds);
+  const chartTabs = buildChartTabs(
+    project,
+    enabledVizIds,
+    modelId,
+    vizLayoutMode,
+    vizChartGroups,
+  );
+  set({
+    currentProject: project,
+    projectTreeSchema: treeSchema,
+    selectedTreePath: firstPath,
+    projectParameters: params,
+    enabledVizIds,
+    vizLayoutMode,
+    vizChartGroups,
+    chartReplayKey: 0,
+    activeChartTab: chartTabs[0]?.id ?? 'overview',
+    runId: null,
+    runStatus: null,
+    runResult: null,
+    liveProbes: [],
+    liveDecisions: [],
+    logs: [],
+    isRunning: false,
+  });
+}
+
+async function loadProjectForMode(
+  templateId: string,
+  apiMode: ApiMode,
+  set: (partial: Partial<AppState>) => void,
+  get: () => AppState,
+) {
+  const project =
+    apiMode === 'mock'
+      ? getMockProjectTemplate(templateId)
+      : await createSimApi('live').getProjectTemplate(templateId);
+  projectTemplateCache.set(templateId, structuredClone(project));
+  await applyProjectToStore(project, apiMode, set, get);
+}
 
 export const useAppStore = create<AppState>((set, get) => ({
   apiMode: (import.meta.env.VITE_API_MODE as ApiMode) ?? 'mock',
-  models: [],
-  currentModelId: null,
-  currentDescriptor: null,
-  config: {},
-  selectedTreeNode: null,
+  projectTemplates: [],
+  currentTemplateId: 'pn_stationary',
+  currentProject: null,
+  projectTreeSchema: null,
+  projectParameters: [],
+  selectedTreePath: null,
   runId: null,
   runStatus: null,
   runResult: null,
@@ -140,73 +257,302 @@ export const useAppStore = create<AppState>((set, get) => ({
   isRunning: false,
   agentBackend: 'rules',
   caseHistory: [],
-  quantityDisplay: {},
+  workspace: 'simulation',
+  benchmarkReports: [],
+  selectedBenchmarkRunId: null,
+  benchmarkReport: null,
+  benchmarkMarkdown: null,
+  benchmarkLoading: false,
+  benchmarkError: null,
+  benchmarkRunning: false,
+  compareRunIds: [],
+  liveApiReachable: null,
+  enabledVizIds: [],
+  chartReplayKey: 0,
+  autoFocusChartOnComplete: true,
+  vizLayoutMode: 'separate_tabs',
+  vizChartGroups: [],
 
   setApiMode: (mode) => {
-    set({ apiMode: mode });
-    const modelId = get().currentModelId;
-    get().loadModels().then(() => {
-      if (modelId) {
-        get().selectModel(modelId);
-      }
-    });
-  },
-
-  loadModels: async () => {
-    const api = createSimApi(get().apiMode);
-    const models = await api.listModels();
-    set({ models });
-    if (models.length > 0 && !get().currentModelId) {
-      await get().selectModel(models[0].model_id);
+    set({ apiMode: mode, liveApiReachable: mode === 'live' ? null : true });
+    projectTemplateCache.clear();
+    void Promise.allSettled([
+      get().loadProjectTemplates(),
+      get().loadProjectTemplate(get().currentTemplateId),
+    ]);
+    if (get().workspace === 'benchmark') {
+      get().loadBenchmarkReports();
     }
   },
 
-  selectModel: async (modelId) => {
+  setWorkspace: (workspace) => {
+    set({ workspace });
+    if (workspace === 'benchmark') {
+      get().loadBenchmarkReports();
+    }
+  },
+
+  loadBenchmarkReports: async () => {
+    set({ benchmarkLoading: true, benchmarkError: null });
+    try {
+      const api = createSimApi(get().apiMode);
+      const reports = await api.listBenchmarkReports();
+      set({ benchmarkReports: reports, benchmarkLoading: false });
+      const selected = get().selectedBenchmarkRunId;
+      if (reports.length > 0) {
+        const target = selected && reports.some((r) => r.run_id === selected)
+          ? selected
+          : reports[0].run_id;
+        if (target !== selected || !get().benchmarkReport) {
+          await get().selectBenchmarkReport(target);
+        }
+      } else {
+        set({ benchmarkReport: null, benchmarkMarkdown: null, selectedBenchmarkRunId: null });
+      }
+    } catch (err) {
+      set({
+        benchmarkLoading: false,
+        benchmarkError: err instanceof Error ? err.message : String(err),
+      });
+      get().appendLog(t('benchmark.loadFailed', { message: String(err) }));
+    }
+  },
+
+  selectBenchmarkReport: async (runId) => {
+    set({ benchmarkLoading: true, benchmarkError: null, selectedBenchmarkRunId: runId });
+    try {
+      const api = createSimApi(get().apiMode);
+      const [report, markdown] = await Promise.all([
+        api.getBenchmarkReport(runId),
+        api.getBenchmarkReportMarkdown(runId),
+      ]);
+      set({ benchmarkReport: report, benchmarkMarkdown: markdown, benchmarkLoading: false });
+      get().appendLog(t('benchmark.loaded', { runId: report.run_id }));
+    } catch (err) {
+      set({
+        benchmarkLoading: false,
+        benchmarkError: err instanceof Error ? err.message : String(err),
+      });
+    }
+  },
+
+  runBenchmarkSuite: async () => {
+    set({ benchmarkRunning: true, benchmarkError: null });
+    get().appendLog(t('benchmark.running'));
+    try {
+      const api = createSimApi(get().apiMode);
+      const result = await api.runBenchmarkSuite();
+      get().appendLog(
+        t('benchmark.runComplete', {
+          runId: result.run_id,
+          passed: result.passed_count,
+          total: result.total,
+        }),
+      );
+      await get().loadBenchmarkReports();
+      await get().selectBenchmarkReport(result.run_id);
+    } catch (err) {
+      set({
+        benchmarkError: err instanceof Error ? err.message : String(err),
+      });
+      get().appendLog(t('benchmark.runFailed', { message: String(err) }));
+    } finally {
+      set({ benchmarkRunning: false });
+    }
+  },
+
+  toggleCompareRun: (runId) => {
+    set((s) => {
+      const ids = s.compareRunIds.includes(runId)
+        ? s.compareRunIds.filter((id) => id !== runId)
+        : s.compareRunIds.length >= 4
+          ? [...s.compareRunIds.slice(1), runId]
+          : [...s.compareRunIds, runId];
+      return { compareRunIds: ids };
+    });
+  },
+
+  clearCompareRuns: () => set({ compareRunIds: [] }),
+
+  loadProjectTemplates: async () => {
+    const uiMode = await resolveEffectiveApiMode(get, set);
+    if (uiMode === 'mock') {
+      set({ projectTemplates: FALLBACK_PROJECT_TEMPLATES });
+      return;
+    }
+    try {
+      const templates = await createSimApi('live').listProjectTemplates();
+      set({ projectTemplates: templates });
+    } catch (err) {
+      set({ projectTemplates: FALLBACK_PROJECT_TEMPLATES, liveApiReachable: false });
+      if (get().apiMode === 'live') {
+        get().appendLog(t('log.liveApiFallbackTemplates', { detail: String(err) }));
+      }
+    }
+  },
+
+  loadProjectTemplate: async (templateId) => {
     if (unsubscribeStream) {
       unsubscribeStream();
       unsubscribeStream = null;
     }
-    const api = createSimApi(get().apiMode);
-    const descriptor = await api.getModel(modelId);
-    const config = { ...descriptor.default_config };
-    set({
-      currentModelId: modelId,
-      currentDescriptor: descriptor,
-      config,
-      quantityDisplay: buildQuantityDisplay(descriptor, config),
-      selectedTreeNode: descriptor.tree_nodes[0]?.id ?? null,
-      activeChartTab: descriptor.default_charts[0]?.id ?? 'overview',
-      runId: null,
-      runStatus: null,
-      runResult: null,
-      liveProbes: [],
-      liveDecisions: [],
-      logs: [],
-      isRunning: false,
+    const tid = templateId ?? get().currentTemplateId ?? 'pn_stationary';
+    const cached = projectTemplateCache.get(tid);
+    if (cached) {
+      await applyProjectToStore(cached, 'mock', set, get);
+      set({ currentTemplateId: tid });
+      return;
+    }
+    const uiMode = await resolveEffectiveApiMode(get, set);
+    try {
+      await loadProjectForMode(tid, uiMode, set, get);
+      set({ currentTemplateId: tid });
+    } catch (err) {
+      if (get().apiMode === 'live' && uiMode === 'live') {
+        set({ liveApiReachable: false });
+        try {
+          await loadProjectForMode(tid, 'mock', set, get);
+          if (get().projectTemplates.length === 0) {
+            set({ projectTemplates: FALLBACK_PROJECT_TEMPLATES });
+          }
+          set({ currentTemplateId: tid });
+          get().appendLog(t('log.liveApiFallbackTemplate', { id: tid, detail: String(err) }));
+          return;
+        } catch (mockErr) {
+          err = mockErr;
+        }
+      }
+      get().appendLog(t('log.failedStart', { message: String(err) }));
+    }
+  },
+
+  importProject: (project) => {
+    if (unsubscribeStream) {
+      unsubscribeStream();
+      unsubscribeStream = null;
+    }
+    void applyProjectToStore(project, get().apiMode, set, get);
+  },
+
+  setProjectValue: (path, value) => {
+    const project = get().currentProject;
+    if (!project) return;
+    const updated = applyProjectValue(project, path, value);
+    set({ currentProject: updated });
+  },
+
+  setSelectedTreePath: (path) => {
+    const project = get().currentProject;
+    set({ selectedTreePath: path });
+    if (!project) return;
+    void fetchProjectParameters(project, path, get, set).then((params) => {
+      if (get().selectedTreePath === path) {
+        set({ projectParameters: params });
+      }
     });
   },
-
-  setConfigValue: (name, value) => {
-    set((s) => ({ config: setNested(s.config, name, value) }));
-  },
-
-  setConfig: (config) => set((s) => ({
-    config,
-    quantityDisplay: s.currentDescriptor
-      ? buildQuantityDisplay(s.currentDescriptor, config)
-      : {},
-  })),
-
-  setQuantityDisplay: (name, text) =>
-    set((s) => ({ quantityDisplay: { ...s.quantityDisplay, [name]: text } })),
-
-  setSelectedTreeNode: (nodeId) => set({ selectedTreeNode: nodeId }),
 
   setActiveChartTab: (tabId) => set({ activeChartTab: tabId }),
 
   setAgentBackend: (backend) => set({ agentBackend: backend }),
 
   setRunResult: (result) => set({ runResult: result }),
+
+  initEnabledVizFromCatalog: (modelId) => {
+    const project = get().currentProject;
+    const mid = (modelId ?? inferModelIdFromProject(project)) as ReturnType<
+      typeof inferModelIdFromProject
+    >;
+    const ids = getDefaultEnabledVizIds(mid);
+    set({
+      enabledVizIds: ids,
+      vizChartGroups: buildDefaultChartGroups(mid, ids),
+    });
+  },
+
+  setEnabledVizIds: (ids) => {
+    const modelId = inferModelIdFromProject(get().currentProject);
+    set({
+      enabledVizIds: ids,
+      vizChartGroups: buildDefaultChartGroups(modelId, ids),
+    });
+  },
+
+  setVizLayoutMode: (mode) => {
+    set((s) => {
+      const modelId = inferModelIdFromProject(s.currentProject);
+      const tabs = s.currentProject
+        ? buildChartTabs(
+            s.currentProject,
+            s.enabledVizIds,
+            modelId,
+            mode,
+            s.vizChartGroups,
+          )
+        : [];
+      return {
+        vizLayoutMode: mode,
+        activeChartTab: resolveActiveChartTab(tabs, s.activeChartTab),
+      };
+    });
+  },
+
+  setVizChartGroups: (groups) => set({ vizChartGroups: groups }),
+
+  mergeSelectedVizIds: (vizIds) => {
+    if (vizIds.length < 2) return false;
+    const modelId = inferModelIdFromProject(get().currentProject);
+    if (!canMergeVizIds(modelId, vizIds)) return false;
+    const merged = [...new Set(vizIds)];
+    set((s) => {
+      const groups = s.vizChartGroups
+        .map((g) => g.filter((id) => !merged.includes(id)))
+        .filter((g) => g.length > 0);
+      groups.push(merged);
+      return { vizChartGroups: groups };
+    });
+    return true;
+  },
+
+  splitVizToOwnGroup: (vizId) => {
+    set((s) => {
+      const groups = s.vizChartGroups
+        .map((g) => g.filter((x) => x !== vizId))
+        .filter((g) => g.length > 0);
+      if (!s.enabledVizIds.includes(vizId)) return s;
+      return { vizChartGroups: [...groups, [vizId]] };
+    });
+  },
+
+  toggleVizOption: (id) => {
+    set((s) => {
+      const enabling = !s.enabledVizIds.includes(id);
+      const next = enabling
+        ? [...s.enabledVizIds, id]
+        : s.enabledVizIds.filter((x) => x !== id);
+      const modelId = inferModelIdFromProject(s.currentProject);
+      const nextGroups = syncChartGroupsOnToggle(
+        s.vizChartGroups,
+        id,
+        enabling,
+        modelId,
+      );
+      const tabs = s.currentProject
+        ? buildChartTabs(
+            s.currentProject,
+            next,
+            modelId,
+            s.vizLayoutMode,
+            nextGroups,
+          )
+        : [];
+      return {
+        enabledVizIds: next,
+        vizChartGroups: nextGroups,
+        activeChartTab: resolveActiveChartTab(tabs, s.activeChartTab),
+      };
+    });
+  },
 
   appendLog: (msg) => set((s) => ({ logs: [...s.logs, msg] })),
 
@@ -219,37 +565,35 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   startRun: async () => {
-    const { currentModelId, config, agentBackend } = get();
-    if (!currentModelId) return;
+    const { currentProject, agentBackend } = get();
+    if (!currentProject) return;
 
     if (unsubscribeStream) {
       unsubscribeStream();
       unsubscribeStream = null;
     }
 
-    const api = createSimApi(get().apiMode);
+    const studyParams = (currentProject.studies?.[0]?.parameters ?? {}) as Record<string, unknown>;
+    const iteration = studyParams['iteration'] as { max_trials?: number } | undefined;
+    const maxTrials = iteration?.max_trials ?? 1;
+    const runRequest = {
+      project: currentProject as unknown as Record<string, unknown>,
+      active_study_id: currentProject.active_study_id,
+      agent: agentBackend,
+      max_trials: maxTrials,
+    };
+
     set({
       isRunning: true,
       runStatus: 'running',
       runResult: null,
       liveProbes: [],
       liveDecisions: [],
-      logs: [t('log.starting', { modelId: currentModelId })],
+      logs: [t('log.starting', { modelId: currentProject.project_id })],
     });
 
-    try {
-      const mergedConfig: Record<string, unknown> = {
-        ...config,
-        agent: { ...(config.agent as Record<string, unknown> ?? {}), backend: agentBackend },
-      };
-      const iteration = mergedConfig.iteration as Record<string, unknown> | undefined;
-      const created = await api.createRun({
-        model_id: currentModelId,
-        config: mergedConfig,
-        agent: agentBackend,
-        max_trials: (iteration?.max_trials as number) ?? 1,
-      });
-
+    const subscribeToRun = (api: ReturnType<typeof createSimApi>, created: { run_id: string; model_id: string }) => {
+      const resultModelId = created.model_id;
       set({ runId: created.run_id, runStatus: 'running' });
 
       unsubscribeStream = api.subscribeRun(created.run_id, {
@@ -269,7 +613,7 @@ export const useAppStore = create<AppState>((set, get) => ({
                 ? { ...s.runResult, probes: mergedProbes, convergence: updatedConv }
                 : {
                     run_id: created.run_id,
-                    model_id: currentModelId,
+                    model_id: resultModelId,
                     status: 'running' as RunStatus,
                     trial_index: 0,
                     scalars: {},
@@ -295,17 +639,34 @@ export const useAppStore = create<AppState>((set, get) => ({
           get().appendLog(
             t('log.agentDecision', {
               action: tRuntime(`action.${decision.action}`, decision.action),
-              reason: decision.reason,
+              reason: resolveAgentReason(decision.reason),
             }),
           );
         },
         onComplete: (result) => {
-          set((s) => ({
-            runResult: result,
-            runStatus: result.status,
-            isRunning: false,
-            caseHistory: [...s.caseHistory, result].slice(-20),
-          }));
+          set((s) => {
+            const modelId = inferModelIdFromProject(s.currentProject);
+            const profileSeries = getEnabledProfileSeries(modelId, s.enabledVizIds);
+            let activeChartTab = s.activeChartTab;
+            if (s.autoFocusChartOnComplete) {
+              const solverStatus = result.solver_status ?? result.status;
+              if (shouldFocusConvergenceTab(solverStatus)) {
+                activeChartTab = 'convergence';
+              } else if (profileSeries.length > 0) {
+                activeChartTab =
+                  firstProfileTabId(s.enabledVizIds, modelId, s.vizLayoutMode) ??
+                  'profiles';
+              }
+            }
+            return {
+              runResult: result,
+              runStatus: result.status,
+              isRunning: false,
+              caseHistory: [...s.caseHistory, result].slice(-20),
+              chartReplayKey: s.chartReplayKey + 1,
+              activeChartTab,
+            };
+          });
           get().appendLog(t('log.complete'));
         },
         onError: (error) => {
@@ -313,7 +674,31 @@ export const useAppStore = create<AppState>((set, get) => ({
           get().appendLog(t('log.error', { error }));
         },
       });
+    };
+
+    let runApiMode = await resolveEffectiveApiMode(get, set);
+    if (get().apiMode === 'live' && runApiMode === 'mock') {
+      get().appendLog(t('log.liveApiFallbackRun'));
+    }
+
+    try {
+      const api = createSimApi(runApiMode);
+      const created = await api.createRun(runRequest);
+      subscribeToRun(api, created);
     } catch (err) {
+      if (get().apiMode === 'live' && runApiMode === 'live') {
+        set({ liveApiReachable: false });
+        runApiMode = 'mock';
+        get().appendLog(t('log.liveApiFallbackRun'));
+        try {
+          const mockApi = createSimApi('mock');
+          const created = await mockApi.createRun(runRequest);
+          subscribeToRun(mockApi, created);
+          return;
+        } catch (mockErr) {
+          err = mockErr;
+        }
+      }
       set({ isRunning: false, runStatus: 'failed' });
       get().appendLog(
         t('log.failedStart', {

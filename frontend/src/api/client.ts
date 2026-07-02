@@ -1,57 +1,96 @@
 import type {
+  BenchmarkReport,
+  BenchmarkReportListItem,
+  BenchmarkRunResponse,
   CreateRunRequest,
   CreateRunResponse,
-  ModelDescriptor,
+  ModelTreeSchema,
+  ProjectTemplateListItem,
   RunStatus,
   SimApi,
+  SimulationProject,
   StreamHandlers,
   UnifiedProbe,
   UnifiedRunResult,
 } from '../types';
 import mockPnResult from '../mocks/pn_result.json';
 import mockFbResult from '../mocks/falling_block_result.json';
-import pnDescriptor from '../mocks/pn_descriptor.json';
-import fbDescriptor from '../mocks/falling_block_descriptor.json';
+import mockPnProject from '../mocks/pn_project_v2.json';
+import mockFbProject from '../mocks/fb_project_v2.json';
+import { buildMockProjectTree } from '../mocks/projectTree';
+import { resolveProjectParameters } from '../utils/projectParameters';
+import mockBenchmarkReport from '../mocks/benchmark_report.json';
+import mockBenchmarkMarkdown from '../mocks/benchmark_report.md?raw';
 
-const MOCK_DESCRIPTORS: Record<string, ModelDescriptor> = {
-  pn_junction_1d: pnDescriptor as unknown as ModelDescriptor,
-  falling_block: fbDescriptor as unknown as ModelDescriptor,
-};
+const MOCK_PN_PROJECT = mockPnProject as unknown as SimulationProject;
+const MOCK_FB_PROJECT = mockFbProject as unknown as SimulationProject;
+
+export const FALLBACK_PROJECT_TEMPLATES: ProjectTemplateListItem[] = [
+  {
+    template_id: 'pn_stationary',
+    project_id: MOCK_PN_PROJECT.project_id,
+    title: MOCK_PN_PROJECT.title,
+    active_study_id: MOCK_PN_PROJECT.active_study_id,
+  },
+  {
+    template_id: 'falling_body',
+    project_id: MOCK_FB_PROJECT.project_id,
+    title: MOCK_FB_PROJECT.title,
+    active_study_id: MOCK_FB_PROJECT.active_study_id,
+  },
+];
 
 const MOCK_RESULTS: Record<string, UnifiedRunResult> = {
-  pn_junction_1d: mockPnResult as unknown as UnifiedRunResult,
-  falling_block: mockFbResult as unknown as UnifiedRunResult,
+  pn_si_equilibrium_demo: mockPnResult as unknown as UnifiedRunResult,
+  falling_body_v2: mockFbResult as unknown as UnifiedRunResult,
 };
 
 function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+export function getMockProjectTemplate(templateId: string): SimulationProject {
+  if (templateId === 'falling_body') {
+    return structuredClone(MOCK_FB_PROJECT);
+  }
+  return structuredClone(MOCK_PN_PROJECT);
+}
+
 export class MockSimApi implements SimApi {
   private runs = new Map<string, UnifiedRunResult>();
 
-  async listModels(): Promise<ModelDescriptor[]> {
-    await delay(100);
-    return Object.values(MOCK_DESCRIPTORS);
+  async listProjectTemplates(): Promise<ProjectTemplateListItem[]> {
+    await delay(50);
+    return FALLBACK_PROJECT_TEMPLATES;
   }
 
-  async getModel(modelId: string): Promise<ModelDescriptor> {
+  async getProjectTemplate(templateId: string): Promise<SimulationProject> {
     await delay(50);
-    const m = MOCK_DESCRIPTORS[modelId];
-    if (!m) throw new Error(`Unknown model: ${modelId}`);
-    return m;
+    return getMockProjectTemplate(templateId);
+  }
+
+  async getProjectTreeSchema(project?: SimulationProject): Promise<ModelTreeSchema> {
+    await delay(30);
+    return buildMockProjectTree(project ?? MOCK_PN_PROJECT);
+  }
+
+  async getProjectParameters(project: SimulationProject, treePath: string) {
+    await delay(20);
+    return { tree_path: treePath, parameters: resolveProjectParameters(project, treePath) };
   }
 
   async createRun(request: CreateRunRequest): Promise<CreateRunResponse> {
     const runId = `mock-${Date.now().toString(36)}`;
-    const base = MOCK_RESULTS[request.model_id];
-    if (!base) throw new Error(`No mock for ${request.model_id}`);
+    const project = request.project as unknown as SimulationProject;
+    const modelKey = project?.project_id ?? 'pn_si_equilibrium_demo';
+    const base = MOCK_RESULTS[modelKey] ?? MOCK_RESULTS.pn_si_equilibrium_demo;
+    if (!base) throw new Error(`No mock for ${modelKey}`);
 
     const running: UnifiedRunResult = {
       ...base,
       run_id: runId,
       status: 'running',
-      logs: [`[mock] Starting ${request.model_id}...`],
+      logs: [`[mock] Starting ${modelKey}...`],
       probes: [],
       decisions: [],
       convergence: base.convergence.map((c) => ({ ...c, x: [], y: [] })),
@@ -59,7 +98,7 @@ export class MockSimApi implements SimApi {
     };
     this.runs.set(runId, running);
 
-    return { run_id: runId, model_id: request.model_id, status: 'running' };
+    return { run_id: runId, model_id: modelKey, status: 'running' };
   }
 
   async getRun(runId: string): Promise<UnifiedRunResult> {
@@ -72,7 +111,7 @@ export class MockSimApi implements SimApi {
     const run = this.runs.get(runId);
     if (!run) return () => {};
 
-    const base = MOCK_RESULTS[run.model_id];
+    const base = MOCK_RESULTS[run.model_id] ?? MOCK_RESULTS.pn_si_equilibrium_demo;
     let cancelled = false;
 
     (async () => {
@@ -104,13 +143,6 @@ export class MockSimApi implements SimApi {
           };
           handlers.onProbe?.(probe);
         }
-        if (run) {
-          run.convergence = base.convergence.map((c) => ({
-            ...c,
-            x: c.x.slice(0, i + 1),
-            y: c.y.slice(0, i + 1),
-          }));
-        }
       }
 
       if (cancelled) return;
@@ -135,25 +167,140 @@ export class MockSimApi implements SimApi {
       cancelled = true;
     };
   }
+
+  async listBenchmarkReports(): Promise<BenchmarkReportListItem[]> {
+    await delay(80);
+    return [
+      {
+        run_id: MOCK_BENCHMARK_REPORT.run_id,
+        timestamp: MOCK_BENCHMARK_REPORT.timestamp,
+        git_commit: MOCK_BENCHMARK_REPORT.git_commit,
+        benchmark_suite: MOCK_BENCHMARK_REPORT.benchmark_suite,
+        output_dir: MOCK_BENCHMARK_REPORT.output_dir,
+        total: MOCK_BENCHMARK_REPORT.summary.total,
+        passed_count: MOCK_BENCHMARK_REPORT.summary.passed_count,
+        warning_count: MOCK_BENCHMARK_REPORT.summary.warning_count,
+        failed_count: MOCK_BENCHMARK_REPORT.summary.failed_count,
+        total_runtime_s: MOCK_BENCHMARK_REPORT.summary.total_runtime_s,
+        overall_passed: MOCK_BENCHMARK_REPORT.summary.overall_passed,
+      },
+    ];
+  }
+
+  async getBenchmarkReport(runId: string): Promise<BenchmarkReport> {
+    await delay(80);
+    if (runId === MOCK_BENCHMARK_REPORT.run_id) {
+      return MOCK_BENCHMARK_REPORT;
+    }
+    throw new Error(`Benchmark report not found: ${runId}`);
+  }
+
+  async getBenchmarkReportMarkdown(runId: string): Promise<string> {
+    await delay(50);
+    if (runId === MOCK_BENCHMARK_REPORT.run_id) {
+      return mockBenchmarkMarkdown;
+    }
+    throw new Error(`Benchmark markdown not found: ${runId}`);
+  }
+
+  async runBenchmarkSuite(): Promise<BenchmarkRunResponse> {
+    await delay(500);
+    return {
+      run_id: MOCK_BENCHMARK_REPORT.run_id,
+      overall_passed: MOCK_BENCHMARK_REPORT.summary.overall_passed,
+      total: MOCK_BENCHMARK_REPORT.summary.total,
+      passed_count: MOCK_BENCHMARK_REPORT.summary.passed_count,
+      warning_count: MOCK_BENCHMARK_REPORT.summary.warning_count,
+      failed_count: MOCK_BENCHMARK_REPORT.summary.failed_count,
+      total_runtime_s: MOCK_BENCHMARK_REPORT.summary.total_runtime_s,
+      output_dir: MOCK_BENCHMARK_REPORT.output_dir,
+    };
+  }
+}
+
+const MOCK_BENCHMARK_REPORT = mockBenchmarkReport as unknown as BenchmarkReport;
+
+const LIVE_FETCH_TIMEOUT_MS = 8000;
+const LIVE_UI_FETCH_TIMEOUT_MS = 2000;
+const LIVE_PROBE_TIMEOUT_MS = 2000;
+
+async function liveFetch(url: string, init?: RequestInit, timeoutMs = LIVE_FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs}ms: ${url}`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function probeLiveApi(timeoutMs = LIVE_PROBE_TIMEOUT_MS): Promise<boolean> {
+  try {
+    const r = await liveFetch('/api/health', undefined, timeoutMs);
+    return r.ok;
+  } catch {
+    return false;
+  }
 }
 
 export class LiveSimApi implements SimApi {
   private baseUrl = '';
 
-  async listModels(): Promise<ModelDescriptor[]> {
-    const r = await fetch(`${this.baseUrl}/api/models`);
+  async listProjectTemplates(): Promise<ProjectTemplateListItem[]> {
+    const r = await liveFetch(`${this.baseUrl}/api/project/templates`, undefined, LIVE_UI_FETCH_TIMEOUT_MS);
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   }
 
-  async getModel(modelId: string): Promise<ModelDescriptor> {
-    const r = await fetch(`${this.baseUrl}/api/models/${modelId}`);
+  async getProjectTemplate(templateId: string): Promise<SimulationProject> {
+    const r = await liveFetch(
+      `${this.baseUrl}/api/project/templates/${encodeURIComponent(templateId)}`,
+      undefined,
+      LIVE_UI_FETCH_TIMEOUT_MS,
+    );
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async getProjectTreeSchema(project?: SimulationProject): Promise<ModelTreeSchema> {
+    if (project) {
+      const r = await liveFetch(
+        `${this.baseUrl}/api/project/tree-schema`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(project),
+        },
+        LIVE_UI_FETCH_TIMEOUT_MS,
+      );
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+    const r = await liveFetch(`${this.baseUrl}/api/project/tree-schema`, undefined, LIVE_UI_FETCH_TIMEOUT_MS);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async getProjectParameters(project: SimulationProject, treePath: string) {
+    const r = await liveFetch(
+      `${this.baseUrl}/api/project/parameters?tree_path=${encodeURIComponent(treePath)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(project),
+      },
+    );
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   }
 
   async createRun(request: CreateRunRequest): Promise<CreateRunResponse> {
-    const r = await fetch(`${this.baseUrl}/api/runs`, {
+    const r = await liveFetch(`${this.baseUrl}/api/runs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
@@ -163,7 +310,7 @@ export class LiveSimApi implements SimApi {
   }
 
   async getRun(runId: string): Promise<UnifiedRunResult> {
-    const r = await fetch(`${this.baseUrl}/api/runs/${runId}`);
+    const r = await liveFetch(`${this.baseUrl}/api/runs/${runId}`);
     if (!r.ok) throw new Error(await r.text());
     return r.json();
   }
@@ -198,6 +345,30 @@ export class LiveSimApi implements SimApi {
     });
 
     return () => es.close();
+  }
+
+  async listBenchmarkReports(): Promise<BenchmarkReportListItem[]> {
+    const r = await liveFetch(`${this.baseUrl}/api/benchmarks/reports`);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async getBenchmarkReport(runId: string): Promise<BenchmarkReport> {
+    const r = await liveFetch(`${this.baseUrl}/api/benchmarks/reports/${encodeURIComponent(runId)}`);
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+  }
+
+  async getBenchmarkReportMarkdown(runId: string): Promise<string> {
+    const r = await liveFetch(`${this.baseUrl}/api/benchmarks/reports/${encodeURIComponent(runId)}/markdown`);
+    if (!r.ok) throw new Error(await r.text());
+    return r.text();
+  }
+
+  async runBenchmarkSuite(): Promise<BenchmarkRunResponse> {
+    const r = await liveFetch(`${this.baseUrl}/api/benchmarks/run`, { method: 'POST' });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
   }
 }
 

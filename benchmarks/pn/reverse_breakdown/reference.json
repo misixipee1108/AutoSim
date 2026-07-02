@@ -1,5 +1,8 @@
 {
+  "case_id": "reverse_breakdown",
+  "description": "High reverse bias produces Emax and optional breakdown_risk",
+  "validation_mode": "validation_unavailable",
+  "category": "breakdown",
   "converged": true,
-  "allow_partial_converged": true,
-  "description": "High reverse bias produces Emax and optional breakdown_risk"
+  "allow_partial_converged": true
 }

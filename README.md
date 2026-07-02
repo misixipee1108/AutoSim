@@ -1,55 +1,56 @@
 # AutoSim
 
-Agent-native physics simulation prototype: falling block with air drag, structured probes, and LLM-assisted monitoring.
+Agent-native physics simulation prototype. Structured **probes** expose solver internals each iteration so rules or LLM agents can monitor convergence, explain failures, and suggest next parameters—without replacing the numerical kernel.
+
+The project explores a **gray-box** workflow: agents read residuals, damping, field peaks, and anomaly flags, then return structured decisions (`continue`, `early_stop`, `refine_mesh`, `recommend_next_parameters`, …).
+
+| Model | Role |
+|-------|------|
+| **Falling Block** | Nonlinear 0D demo (drag models) with theory-specific probes |
+| **1D PN Junction** | Semiconductor stack: Poisson → depletion → drift-diffusion → transient DD, with 16 validation benchmarks |
+
+A schema-driven **React workbench** and **FastAPI** backend share a unified result protocol (`profiles`, `time_series`, `convergence`, `probes`, `decisions`).
+
+> Research prototype, not industrial TCAD. Cite literature in config `sources` for reproducibility.
 
 ## Features
 
-- **Physics model:** 1D vertical free fall with configurable drag
-- **Drag theories:** linear, quadratic, polynomial, custom expression
-- **Probes:** common diagnostics + theory-specific probes emitted during simulation
-- **Agent backends:** rules-only, DeepSeek API, or hybrid (LLM + rules veto)
-- **Workflow:** COMSOL-style forward simulation with optional multi-trial iteration
-- **Output:** JSON/JSONL logs, CSV summary, trajectory and convergence plots
+- **Structured probes** — Newton/Gummel diagnostics, physics scalars, failure flags
+- **Agent backends** — `rules`, DeepSeek API, or `hybrid` (LLM + rules veto)
+- **COMSOL-style designer** — SimulationProject v2: Model / Simulation / Results sections, plugin physics interfaces, study runners
+- **1D PN stack** — four `model_type` tiers, five doping profiles, Si/Ge/GaAs library, bias/C-V sweeps, recombination, transient, optimization
+- **Web workbench** — collapsible model tree, live parameter schemas from API, visualization catalog (per-profile tabs or merged charts), benchmark workspace, mock or live API
+
+## Project Layout
+
+```
+AutoSim/
+├── src/autosim/
+│   ├── simulator/       # Falling block
+│   ├── pn/              # 1D PN solvers, doping, validation, benchmarks
+│   ├── project/         # SimulationProject v2 schemas, tree, templates
+│   ├── plugins/         # Physics interfaces + study plugins
+│   ├── materials/       # YAML material library
+│   ├── agent/           # Rules + DeepSeek
+│   ├── orchestrator/    # Sweeps, optimization, batch runs
+│   └── api/             # FastAPI + adapters
+├── frontend/            # React + TypeScript workbench
+├── config/              # Demo YAML (legacy + PN)
+├── examples/projects/   # v2 JSON templates
+├── benchmarks/pn/       # PN regression cases
+└── tests/
+```
 
 ## Installation
 
+Python ≥ 3.11:
+
 ```bash
-cd d:\AutoSim
 pip install -e ".[dev]"
+pip install -e ".[dev,optimize]"   # optional Optuna
 ```
 
-## Web Frontend (Demo Workbench)
-
-Schema-driven React workbench for **Falling Block** and **1D PN Junction** with mock or live API modes.
-
-### Backend API
-
-```bash
-uvicorn autosim.api.main:app --reload --port 8000
-```
-
-Endpoints: `GET /api/models`, `GET /api/models/{id}`, `POST /api/runs`, `GET /api/runs/{id}`, `GET /api/runs/{id}/stream` (SSE).
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev          # mock mode (no backend required)
-npm run dev:live     # live mode — proxies /api to localhost:8000
-```
-
-Toggle **Live API** in the toolbar to switch modes at runtime. Both models share a unified result protocol (`profiles`, `time_series`, `convergence`, `probes`, `decisions`).
-
-Regenerate mock data from real simulations:
-
-```bash
-python scripts/gen_mock_data.py
-```
-
-## Configuration
-
-Copy `.env.example` to `.env` and set your DeepSeek API key (optional for rules-only mode):
+Optional DeepSeek (rules-only mode works without it):
 
 ```
 DEEPSEEK_API_KEY=your_key
@@ -59,172 +60,160 @@ DEEPSEEK_MODEL=deepseek-chat
 
 ## Quick Start
 
-Single trial (rules agent, no API needed):
+### CLI
 
 ```bash
-autosim run -c config/demo_falling_block.yaml --agent rules
+autosim run --project examples/projects/pn_si_stationary_v2.json --agent rules
+autosim run -c config/demo_pn_si_equilibrium.yaml --agent rules   # YAML auto-converts
+autosim export-project -c config/demo_pn_iv.yaml -o examples/projects/my_iv_v2.json
+autosim benchmark pn
+autosim benchmark pn --case symmetric_equilibrium
 ```
 
-Multi-trial iteration:
+Runs write to `runs/` (JSON, JSONL, plots).
+
+### API + Frontend
 
 ```bash
-autosim iterate -c config/demo_falling_block.yaml --agent rules --max-trials 3
+uvicorn autosim.api.main:app --reload --port 8000
+
+cd frontend && npm install
+npm run dev          # mock mode
+npm run dev:live     # proxy /api → :8000
 ```
 
-With DeepSeek:
+Submit a run (wrap project JSON):
 
 ```bash
-autosim run -c config/demo_falling_block.yaml --agent hybrid
+curl -X POST http://localhost:8000/api/runs -H "Content-Type: application/json" \
+  -d '{"project": <project-json>, "agent": "rules"}'
 ```
 
-Output is written to `runs/<timestamp>/`.
+Load built-in template: `GET /api/project/templates/pn_stationary`.
 
-## 1D PN Junction (Poisson)
+### Key API Endpoints
 
-Nonlinear 1D Poisson solver for abrupt Si PN junction with Newton iteration probes and depletion-approximation validation.
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/health` | Health check |
+| `GET /api/project/templates` | Template list |
+| `POST /api/project/tree-schema` | Three-root model tree for a project |
+| `POST /api/project/parameters?tree_path=...` | Parameter schemas for a tree node |
+| `POST /api/runs` | Start simulation (`project` body required) |
+| `GET /api/runs/{id}/stream` | SSE progress |
+| `GET /api/benchmarks/reports` | Benchmark report list |
+| `POST /api/benchmarks/run` | Run PN benchmark suite |
+
+Legacy `{ model_id, config }` runs are removed; use `project` payloads. See [docs/MIGRATION.md](docs/MIGRATION.md) and [docs/architecture_v2.md](docs/architecture_v2.md).
+
+## Web Workbench
+
+Professional simulation layout: **model tree** + parameter panel, central charts, solver/agent side panels, task history.
+
+**Model tree (v2):** three roots — **Model**, **Simulation**, **Results**. Under **Physics Interfaces**, nodes follow field → group hierarchy (e.g. *Semiconductor* → *Physics Model* / *Doping*), not solver names. Branches collapse with ▶ toggles; only the path to the current selection auto-expands.
+
+**Parameters:** selecting a tree node loads schemas from `POST /api/project/parameters` (live) or local mirrors (mock). PN physics model dropdown includes all four `model_type` values; doping profile includes abrupt, linear graded, gaussian, erfc, and piecewise.
+
+**Charts:** overview, profile tabs (ψ, E, carriers, ρ), combined multi-series view, Newton convergence, sweeps, transient, optimization scatter. Visualization options control which series appear and layout (separate tabs vs merged).
+
+**Other:** YAML/JSON import-export, multi-run profile compare, benchmark report viewer, Live API toggle in toolbar.
+
+Example project: [`examples/projects/pn_si_stationary_v2.json`](examples/projects/pn_si_stationary_v2.json).
+
+Regenerate mock fixtures from real runs: `python scripts/gen_mock_data.py`.
+
+## SimulationProject v2
+
+COMSOL-inspired JSON schema:
+
+| Section | Contents |
+|---------|----------|
+| **Model** | Geometry, domains, materials, physics interfaces, BC/IC, mesh |
+| **Simulation** | Studies (`stationary`, bias/C-V sweep, transient, …) + solver sequence |
+| **Results** | Output variables + visualization recipes |
+
+PN mounts as plugins `semiconductor_1d_poisson` (equilibrium Poisson/depletion) or `semiconductor_1d_dd` (Gummel / transient). `ProjectAdapter` normalizes to `UnifiedRunResult` for the UI.
+
+## 1D PN Junction
+
+1D semiconductor solver with agent-readable probes. Junction at `x = 0`; P-side `x < 0`, N-side `x > 0`. Units: cm, cm⁻³, V, V/cm.
+
+### Physics (`model_type`)
+
+| Type | Description |
+|------|-------------|
+| `poisson` | Nonlinear Poisson + Boltzmann carriers (default) |
+| `depletion` | Depletion approximation |
+| `drift_diffusion` | Gummel Poisson + continuity; I-V / C-V |
+| `transient_dd` | Time-dependent DD with pulse/step bias |
+
+### Doping (`doping.type`)
+
+`abrupt`, `linear_graded`, `gaussian`, `erfc`, `piecewise`. Junction position `xj`; optional junction mesh refinement.
+
+### Solvers & materials
+
+Newton variants: `newton`, `damped_newton`, `newton_line_search`. COMSOL-style scaled convergence (`solver.convergence.criterion`: `residual`, `solution`, `either`, `both`).
+
+Materials in `src/autosim/materials/library/` (Si, Ge, GaAs) with temperature-dependent `ni` and literature refs (Sze & Ng; Green 1990 for Si).
+
+### Extended PN capabilities
+
+Bias/C-V sweeps with warm start and continuation, SRH/Auger/radiative recombination, transient waveforms, Chynoweth breakdown heuristic, Optuna/grid optimization, robustness sweeps, Shockley I-V validation benchmark.
+
+### Validation & benchmarks
+
+Analytic checks vs depletion theory (Vbi, W). Status layers: `solver_status`, `validation_status`, `run_status`.
 
 ```bash
-python -m autosim.cli run --sim pn -c config/demo_pn_si_equilibrium.yaml --agent rules
-python -m autosim.cli iterate --sim pn -c config/demo_pn_si_equilibrium.yaml --agent rules --max-trials 2
+autosim benchmark pn
 ```
 
-### Physics & units
+Scans `benchmarks/pn/` (16 cases: equilibrium, graded/erfc doping, mesh convergence, Newton stability, I-V Shockley, C-V, recombination, transient, breakdown, …). Outputs `benchmark_report.json` + `.md` under `reports/benchmarks/<timestamp>/`. UI benchmark workspace consumes the same JSON.
 
-- Coordinate: `x=0` at junction; P-side `x<0`, N-side `x>0`
-- Units: length (cm), doping (cm⁻³), potential (V), field (V/cm)
-- Boltzmann carriers: `n = ni·exp(ψ/Vt)`, `p = ni·exp(-ψ/Vt)`
-- Material defaults from literature (Si @ 300 K):
+Validation modes in each `reference.json`: `analytic_abrupt`, `numerical_only`, `validation_unavailable`.
 
-| Parameter | Value | Source |
-|-----------|-------|--------|
-| eps_r | 11.7 | Sze & Ng (2012) Ch. 1 |
-| ni | 1.0×10¹⁰ cm⁻³ | Green (1990) JAP 67, 2944 |
-| q, kB, eps_0 | CODATA | NIST |
+## Falling Block
 
-### Validation
+1D vertical fall with drag models: `linear`, `quadratic`, `polynomial`, `custom` (expression). Probes include energy drift, terminal velocity estimates, Reynolds-like scalars, and divergence flags. Used as the simpler agent-native demo before PN complexity.
 
-Numerical results are compared against depletion approximation (Sze Ch. 2):
+## Agent System
 
-- Vbi = Vt·ln(Na·Nd/ni²)
-- W = sqrt(2ε/q · (1/Na + 1/Nd) · (Vbi - Vapp))
+| Backend | Behavior |
+|---------|----------|
+| `rules` | Threshold-based (stall, NaN, condition number) |
+| `deepseek` | LLM via DeepSeek API |
+| `hybrid` | LLM proposal + rules veto |
 
-**Note:** Full Poisson with Boltzmann carriers differs from depletion approximation; W tolerance is relaxed (~40%) accordingly. This MVP does not claim TCAD-grade accuracy.
+Agents never replace the solver. In iterate mode, `recommend_next_parameters` can drive the next trial.
 
-### PN config example
+## Configuration
 
-See [`config/demo_pn_si_equilibrium.yaml`](config/demo_pn_si_equilibrium.yaml) — includes `sources` field and `#` citation comments.
+**Preferred:** v2 JSON under `examples/projects/` or exported via `autosim export-project`.
 
-### PN probe fields
+**Legacy YAML** still runs (`config/demo_*.yaml`); CLI converts to v2 internally. PN blocks: `geometry`, `doping`, `bias_scan`, `mesh`, `solver`, `recombination`, `transient`, `cv_scan`, `breakdown`, `optimization`, `agent`.
 
-`iteration`, `residual_norm`, `scaled_residual_norm`, `scaled_delta_norm`, `residual_scale`, `solution_scale`, `relative_tol`, `residual_reduction_rate`, `delta_norm`, `damping_factor`, `jacobian_condition_estimate`, `max_psi`, `min_psi`, `max_electric_field`, `max_carrier_density`, `charge_neutrality_error`, `is_nan`, `is_unphysical`, `exp_clamped`, `stalled`, `convergence_status`
-
-### PN convergence (COMSOL-style)
-
-Newton convergence uses **scaled relative** criteria separate from analytic validation:
-
-- **Criterion** (`solver.convergence.criterion`): `residual`, `solution`, `either`, or `both` (default: `both`)
-- **Relative tolerance**: flat `tol` in YAML is an alias for `relative_tol`
-- **Scaling**: `auto` uses initial residual norm and initial ψ scale; `manual` uses user `residual_scale` / `solution_scale`
-- Converged when scaled residual **and** scaled Newton step (for `both`) are below `relative_tol`
-
-Three status layers in results:
-
-| Layer | Meaning |
-|-------|---------|
-| `solver_status` | Newton outcome only |
-| `validation_status` | Abrupt-junction benchmark vs depletion analytic (not used for Newton stop) |
-| `run_status` | Workflow summary (`completed`, `completed_with_warning`, `failed`, …) |
-
-If Newton stops at `max_iter_reached` but validation passes, `run_status` is `completed_with_warning`.
-
-### PN output
-
-```
-runs/pn_<timestamp>/
-├── validation.json
-├── trials_summary.csv
-├── plots/
-│   ├── psi_trial_000.png
-│   ├── E_trial_000.png
-│   ├── carriers_trial_000.png
-│   └── newton_residual_trial_000.png
-└── trial_000/
-    ├── input.json, metrics.json, profile.json
-    ├── probes.jsonl, decisions.jsonl
-```
-
-## Drag Models
-
-| Model | Formula | Parameters |
-|-------|---------|------------|
-| `linear` | F = c1 · v | `c1` |
-| `quadratic` | F = c2 · v · \|v\| | `c2` |
-| `polynomial` | F = Σ cᵢ · vⁱ (i≥1) | `coeffs: [c1, c2, ...]` |
-| `custom` | user expression | `expression`, plus named constants |
-
-Custom expression example (use `abs_v` for speed magnitude, `v` for signed velocity):
-
-```yaml
-drag_model: custom
-drag_params:
-  expression: "c1 * abs_v + c2 * abs_v * abs_v"
-  c1: 0.1
-  c2: 0.05
-```
-
-Allowed variables: `v`, `abs_v`, plus named constants. Allowed functions: `abs`, `pow`, `sqrt`, `sin`, `cos`, `exp`, `log`.
-
-## Probe Fields
-
-**Common (all models):** `t`, `y`, `v`, `a`, `ke`, `pe`, `energy_drift`, `distance_to_ground`, `is_diverging`, `is_nan`, `drag_force`
-
-**Theory-specific:**
-
-- linear: `v_terminal_linear`, `drag_weight_ratio`
-- quadratic: `v_terminal_quad`, `reynolds_like`, `drag_weight_ratio`
-- polynomial: `dominant_term`, `term_fractions`, `term_contributions`
-- custom: `drag_value`, `drag_sensitivity`
-
-## Output Files
-
-```
-runs/<timestamp>/
-├── trials_summary.csv
-├── plots/
-│   ├── trajectory_trial_000.png
-│   └── convergence.png          # multi-trial only
-└── trial_000/
-    ├── input.json
-    ├── metrics.json
-    ├── probes.jsonl
-    └── decisions.jsonl
-```
-
-## Agent Decisions
-
-Structured actions: `continue`, `early_stop`, `adjust_search_space`, `explain_failure`, `recommend_next`.
-
-In `iterate` mode, post-run `recommend_next` decisions with `suggested_params` drive the next trial.
+Notable demos: `demo_pn_si_equilibrium.yaml`, `demo_pn_iv.yaml`, `demo_pn_cv.yaml`, `demo_pn_pulse.yaml`, `demo_pn_graded.yaml`, `demo_falling_block.yaml`.
 
 ## Testing
 
 ```bash
 pytest
+pytest tests/pn/test_benchmarks.py
+pytest tests/api/
+pytest tests/project/
 ```
 
-## Example Configs
+## Related Docs
 
-| File | Drag model |
-|------|------------|
-| [`config/demo_falling_block.yaml`](config/demo_falling_block.yaml) | quadratic |
-| [`config/demo_linear.yaml`](config/demo_linear.yaml) | linear |
-| [`config/demo_polynomial.yaml`](config/demo_polynomial.yaml) | polynomial |
-| [`config/demo_custom.yaml`](config/demo_custom.yaml) | custom |
-| [`config/demo_pn_si_equilibrium.yaml`](config/demo_pn_si_equilibrium.yaml) | PN equilibrium |
-| [`config/demo_pn_si_reverse_bias.yaml`](config/demo_pn_si_reverse_bias.yaml) | PN reverse bias |
-| [`config/demo_pn_erfc.yaml`](config/demo_pn_erfc.yaml) | erfc diffused doping |
-| [`config/demo_pn_iv.yaml`](config/demo_pn_iv.yaml) | DD Gummel I-V sweep |
-| [`config/demo_pn_cv.yaml`](config/demo_pn_cv.yaml) | C-V differential capacitance |
-| [`config/demo_pn_recombination.yaml`](config/demo_pn_recombination.yaml) | SRH recombination DD |
-| [`config/demo_pn_pulse.yaml`](config/demo_pn_pulse.yaml) | Transient pulse bias |
-| [`config/demo_pn_breakdown.yaml`](config/demo_pn_breakdown.yaml) | Breakdown / impact ionization |
+| Document | Contents |
+|----------|----------|
+| [docs/architecture_v2.md](docs/architecture_v2.md) | v2 architecture |
+| [docs/MIGRATION.md](docs/MIGRATION.md) | API and schema migration |
+| [docs/plugin_development.md](docs/plugin_development.md) | Adding physics plugins |
+| [AutoSim OverallPlan.md](AutoSim%20OverallPlan.md) | Vision and roadmap |
+| [AutoSim 1D PN node.md](AutoSim%201D%20PN%20node.md) | PN requirements and probes |
+
+## License
+
+See repository for license terms.

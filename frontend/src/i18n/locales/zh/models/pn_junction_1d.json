@@ -9,6 +9,11 @@
     "geometry": "几何",
     "mesh": "网格",
     "bias": "偏压",
+    "cv": "C-V 扫描",
+    "recombination": "复合",
+    "breakdown": "击穿",
+    "transient": "瞬态",
+    "optimization": "优化",
     "solver": "求解器",
     "agent": "智能体设置"
   },
@@ -19,8 +24,14 @@
     "Geometry": "几何",
     "Mesh": "网格",
     "Bias": "偏压",
+    "CV": "C-V 扫描",
+    "Recombination": "复合",
+    "Breakdown": "击穿",
+    "Transient": "瞬态",
+    "Optimization": "优化",
     "Solver": "求解器",
-    "Agent": "智能体"
+    "Agent": "智能体",
+    "Study": "研究"
   },
   "params": {
     "model_type": {
@@ -29,18 +40,20 @@
       "options": {
         "poisson": "非线性泊松",
         "depletion": "耗尽近似",
-        "drift_diffusion": "漂移–扩散 (Gummel)"
+        "drift_diffusion": "漂移–扩散 (Gummel)",
+        "transient_dd": "瞬态漂移–扩散"
       },
       "optionsHelp": {
         "poisson": "自洽非线性泊松方程，采用玻尔兹曼载流子统计求 ψ(x)。",
         "depletion": "耗尽近似，忽略中性区多数载流子，求解快但精度较低。",
-        "drift_diffusion": "漂移–扩散模型，Gummel 迭代耦合泊松与连续性方程。"
+        "drift_diffusion": "漂移–扩散模型，Gummel 迭代耦合泊松与连续性方程。",
+        "transient_dd": "瞬态漂移–扩散，时变偏压与 backward-Euler 载流子更新。"
       }
     },
     "material": {
       "label": "材料",
       "description": "半导体材料。",
-      "options": { "Si": "硅 (Si)", "Ge": "锗 (Ge)" },
+      "options": { "Si": "硅 (Si)", "Ge": "锗 (Ge)", "GaAs": "砷化镓 (GaAs)" },
       "optionsHelp": {
         "Si": "硅：300 K 时 Eg ≈ 1.12 eV，PN 结演示默认材料。",
         "Ge": "锗：带隙更小，室温本征载流子浓度更高。"
@@ -57,14 +70,20 @@
         "abrupt": "突变结 (阶跃)",
         "linear_graded": "线性渐变",
         "gaussian": "高斯分布",
+        "erfc": "Erfc 扩散型",
         "piecewise": "分段 / 表格"
       },
       "optionsHelp": {
         "abrupt": "阶跃结：P 区恒定 Na，N 区恒定 Nd。",
         "linear_graded": "净掺杂在过渡区线性渐变。",
         "gaussian": "以冶金结为中心的高斯掺杂分布。",
+        "erfc": "互补误差函数扩散结掺杂分布。",
         "piecewise": "用户定义的分段或表格掺杂。"
       }
+    },
+    "junction_position": {
+      "label": "结位置",
+      "description": "PN 结冶金结位置。"
     },
     "Na": {
       "label": "受主浓度",
@@ -220,22 +239,55 @@
     "profiles": "分布曲线",
     "carriers": "载流子",
     "convergence": "牛顿收敛",
-    "sweep": "偏压扫描"
+    "sweep": "偏压扫描",
+    "cv_curve": "C-V 曲线",
+    "time_series": "瞬态响应",
+    "optimization": "优化"
   },
   "probes": {
     "residual_norm": "残差范数",
+    "scaled_residual_norm": "缩放残差范数",
     "residual_reduction_rate": "残差下降率",
-    "delta_norm": "增量范数",
+    "delta_norm": "牛顿步长范数",
+    "scaled_delta_norm": "缩放步长范数",
+    "relative_tol": "相对容差",
+    "residual_scale": "残差缩放",
+    "solution_scale": "解缩放",
     "damping_factor": "阻尼因子",
     "max_electric_field": "最大电场",
     "jacobian_condition_estimate": "雅可比条件数",
     "charge_neutrality_error": "电荷中性误差",
+    "max_carrier_density": "最大载流子浓度",
     "convergence_risk_score": "收敛风险评分",
     "mesh_quality_indicator": "网格质量",
+    "current_continuity_error": "电流连续性误差",
     "convergence_status": "收敛状态",
     "failure_reason": "失败原因",
+    "recommended_numerical_action": "推荐数值动作",
     "stalled": "停滞",
     "is_unphysical": "非物理",
     "exp_clamped": "指数截断"
+  },
+  "vizOptions": {
+    "potential": {
+      "label": "电势 ψ(x)",
+      "description": "沿结方向的静电势分布。"
+    },
+    "electric_field": {
+      "label": "电场 E(x)",
+      "description": "由电势梯度得到的电场强度。"
+    },
+    "carriers": {
+      "label": "载流子浓度 n(x), p(x)",
+      "description": "电子与空穴浓度（对数坐标）。"
+    },
+    "charge_density": {
+      "label": "电荷密度 ρ(x)",
+      "description": "空间电荷密度分布。"
+    },
+    "convergence": {
+      "label": "牛顿收敛曲线",
+      "description": "缩放残差与缩放步长随迭代的变化。"
+    }
   }
 }

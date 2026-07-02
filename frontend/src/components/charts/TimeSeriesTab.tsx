@@ -12,7 +12,7 @@ export function TimeSeriesTab({ seriesNames }: Props) {
   const series = useMemo(() => {
     if (!runResult?.time_series.length) return [];
     if (!seriesNames?.length) {
-      return runResult.time_series.filter((s) => ['position', 'velocity'].includes(s.name));
+      return runResult.time_series;
     }
     return runResult.time_series.filter((s) => seriesNames.includes(s.name));
   }, [runResult, seriesNames]);

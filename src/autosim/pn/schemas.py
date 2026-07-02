@@ -168,7 +168,7 @@ class PnOptimizationSpec(BaseModel):
     design_vars: list[PnDesignVarSpec] = Field(default_factory=list)
     objectives: list[PnObjectiveSpec] = Field(default_factory=list)
     max_trials: int = 20
-    method: Literal["random", "grid", "optuna"] = "random"
+    method: Literal["random", "grid", "optuna", "genetic"] = "random"
 
 
 class PnSimInput(BaseModel):
@@ -267,6 +267,7 @@ class PnNewtonProbe(BaseModel):
     stalled: bool
     convergence_status: str
     failure_reason: str = ""
+    recommended_numerical_action: str = ""
     convergence_risk_score: float = 0.0
     mesh_quality_indicator: float = 1.0
     current_continuity_error: float = 0.0
@@ -386,6 +387,7 @@ class PnRunConfig(BaseModel):
     Nd: float | None = None
     Lp: float | None = None
     Ln: float | None = None
+    xj: float | None = None
     Nx: int | None = None
     Vapp: float | None = None
     tol: float | None = None
@@ -459,6 +461,25 @@ class PnRunConfig(BaseModel):
         refs = d.get("references") or d.get("sources")
         if refs and not d.get("sources"):
             d["sources"] = list(refs) if isinstance(refs, list) else [refs]
+        if "optimization" in d and isinstance(d["optimization"], dict):
+            opt = d["optimization"]
+            import json
+
+            for json_key, target in (
+                ("design_vars_json", "design_vars"),
+                ("objectives_json", "objectives"),
+            ):
+                raw_json = opt.get(json_key)
+                if isinstance(raw_json, str) and raw_json.strip():
+                    try:
+                        opt[target] = json.loads(raw_json)
+                    except json.JSONDecodeError:
+                        opt[target] = []
+                    opt.pop(json_key, None)
+        if "solver" in d and isinstance(d["solver"], dict):
+            cp = d["solver"].get("checkpoint_dir")
+            if cp == "":
+                d["solver"]["checkpoint_dir"] = None
         return d
 
     def to_sim_input(self) -> PnSimInput:
@@ -471,7 +492,7 @@ class PnRunConfig(BaseModel):
             "Nd": self.Nd if self.Nd is not None else 1e16,
             "Lp": self.Lp if self.Lp is not None else 2e-4,
             "Ln": self.Ln if self.Ln is not None else 2e-4,
-            "xj": self.geometry.xj if self.geometry else 0.0,
+            "xj": self.xj if self.xj is not None else (self.geometry.xj if self.geometry else 0.0),
             "Nx": self.Nx if self.Nx is not None else 200,
             "boundary": self.boundary.model_dump(),
             "Vapp": self.Vapp if self.Vapp is not None else 0.0,

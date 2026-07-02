@@ -44,7 +44,7 @@ class ParameterSchema(BaseModel):
 class OutputSchema(BaseModel):
     name: str
     label: str
-    chart_type: Literal["line_profile", "time_series", "convergence", "scalar"] = "line_profile"
+    chart_type: Literal["line_profile", "time_series", "convergence", "scalar", "sweep", "optimization"] = "line_profile"
     x: str = ""
     y: str = ""
     unit: str = ""
@@ -70,7 +70,7 @@ class TreeNodeSchema(BaseModel):
 class ChartTabSchema(BaseModel):
     id: str
     label: str
-    chart_type: Literal["profiles", "time_series", "convergence", "overview", "sweep"] = "profiles"
+    chart_type: Literal["profiles", "time_series", "convergence", "overview", "sweep", "optimization"] = "profiles"
     series_names: list[str] = Field(default_factory=list)
 
 
@@ -204,10 +204,37 @@ class UnifiedRunResult(BaseModel):
 
 
 class CreateRunRequest(BaseModel):
-    model_id: str
+    model_id: str | None = None
     config: dict[str, Any] = Field(default_factory=dict)
+    project: dict[str, Any] | None = None
+    active_study_id: str | None = None
     agent: str | None = None
     max_trials: int = 1
+
+
+class ModelTreeSchemaResponse(BaseModel):
+    schema_version: str = "2.0"
+    roots: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PhysicsInterfaceListItem(BaseModel):
+    interface_id: str
+    name: str
+    category: str
+    dimension: str
+    governing_equations: list[str] = Field(default_factory=list)
+
+
+class ProjectTemplateListItem(BaseModel):
+    template_id: str
+    project_id: str
+    title: str
+    active_study_id: str | None = None
+
+
+class ProjectParameterSchemaResponse(BaseModel):
+    tree_path: str
+    parameters: list[ParameterSchema] = Field(default_factory=list)
 
 
 class CreateRunResponse(BaseModel):
@@ -219,3 +246,80 @@ class CreateRunResponse(BaseModel):
 class StreamEvent(BaseModel):
     event: Literal["probe", "decision", "log", "status", "complete", "error"]
     data: dict[str, Any] = Field(default_factory=dict)
+
+
+DisplayCategoryKind = Literal[
+    "passed",
+    "warning",
+    "failed",
+    "numerical_only",
+    "validation_unavailable",
+]
+
+
+class BenchmarkReportListItem(BaseModel):
+    run_id: str
+    timestamp: str
+    git_commit: str | None = None
+    benchmark_suite: str = "pn"
+    output_dir: str = ""
+    total: int = 0
+    passed_count: int = 0
+    warning_count: int = 0
+    failed_count: int = 0
+    total_runtime_s: float = 0.0
+    overall_passed: bool = False
+
+
+class BenchmarkCaseReportEnriched(BaseModel):
+    case_id: str
+    config_path: str = ""
+    reference_path: str = ""
+    model_type: str
+    doping_type: str = "abrupt"
+    validation_mode: Literal["analytic_abrupt", "numerical_only", "validation_unavailable"] = "analytic_abrupt"
+    category: str = ""
+    description: str = ""
+    solver_status: str
+    validation_status: str | None = None
+    validation_status_display: str | None = None
+    run_status: str
+    outcome: Literal["pass", "warning", "fail"]
+    display_category: DisplayCategoryKind
+    key_metrics: dict[str, float | bool | int | None] = Field(default_factory=dict)
+    reference_metrics: dict[str, float | bool | int | None] = Field(default_factory=dict)
+    relative_errors: dict[str, float | None] = Field(default_factory=dict)
+    tolerances: dict[str, float] = Field(default_factory=dict)
+    checks: dict[str, bool] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    failure_reason: str | None = None
+    runtime_s: float = 0.0
+    stop_reason: str | None = None
+
+
+class BenchmarkEnvironmentView(BaseModel):
+    python_version: str
+    platform: str
+    hostname: str | None = None
+
+
+class BenchmarkSummaryView(BaseModel):
+    total: int
+    passed_count: int
+    warning_count: int
+    failed_count: int
+    total_runtime_s: float
+    overall_passed: bool
+
+
+class BenchmarkReportEnriched(BaseModel):
+    schema_version: str = "1.0"
+    run_id: str
+    timestamp: str
+    git_commit: str | None = None
+    benchmark_suite: str = "pn"
+    autosim_version: str = ""
+    output_dir: str = ""
+    environment: BenchmarkEnvironmentView
+    summary: BenchmarkSummaryView
+    case_results: list[BenchmarkCaseReportEnriched] = Field(default_factory=list)

@@ -1,0 +1,30 @@
+{
+
+  "case_id": "doping_sweep",
+
+  "description": "Vbi tracks analytic built-in potential for multiple Na/Nd pairs",
+
+  "validation_mode": "analytic_abrupt",
+
+  "category": "doping",
+
+  "doping_pairs": [
+
+    {"Na": 1.0e17, "Nd": 1.0e15, "Vbi": 0.716},
+
+    {"Na": 1.0e18, "Nd": 1.0e16, "Vbi": 0.835},
+
+    {"Na": 1.0e18, "Nd": 1.0e15, "Vbi": 0.775}
+
+  ],
+
+  "tolerances": {
+
+    "Vbi": 0.05
+
+  },
+
+  "converged": true
+
+}
+

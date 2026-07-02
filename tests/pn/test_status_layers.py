@@ -45,7 +45,7 @@ def test_solver_max_iter_with_validation_passed_is_warning():
     assert unified.error is None
 
 
-def test_graded_doping_validation_unavailable_run_warning_on_max_iter():
+def test_graded_doping_validation_numerical_only_run_warning_on_max_iter():
     inp = PnSimInput(
         Na=1e18,
         Nd=1e16,
@@ -55,7 +55,7 @@ def test_graded_doping_validation_unavailable_run_warning_on_max_iter():
         max_iter=3,
     )
     result = solve_pn(inp)
-    assert result.validation.status == ValidationStatus.UNAVAILABLE
+    assert result.validation.status == ValidationStatus.NUMERICAL_ONLY
     assert result.solver_status == SolverStatus.MAX_ITER_REACHED
     assert result.run_status == "completed_with_warning"
     assert "linear_graded" in result.validation.reason

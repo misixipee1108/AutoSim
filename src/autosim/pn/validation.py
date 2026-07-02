@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from autosim.pn.analytical import DepletionAnalytic
+from autosim.pn.analytical import DepletionAnalytic, shockley_current, shockley_saturation_current
+from autosim.materials.loader import load_material
 from autosim.pn.schemas import (
     PnSimInput,
     PnValidationReport,
@@ -10,7 +11,14 @@ from autosim.pn.schemas import (
     ValidationStatus,
 )
 
-_NON_ABRUPT_DOPING = frozenset({"linear_graded", "gaussian", "piecewise"})
+_NON_ABRUPT_DOPING = frozenset({
+    "linear_graded",
+    "gaussian",
+    "piecewise",
+    "erfc",
+    "custom",
+    "table",
+})
 
 
 def analytic_validation_eligible(sim_input: PnSimInput) -> tuple[bool, str]:
@@ -28,6 +36,14 @@ def analytic_validation_eligible(sim_input: PnSimInput) -> tuple[bool, str]:
     return True, ""
 
 
+def validation_skip_kind(sim_input: PnSimInput, skip_reason: str) -> ValidationStatus:
+    """Classify skipped validation as numerical_only vs unavailable."""
+    doping_type = sim_input.doping.type if sim_input.doping else "abrupt"
+    if doping_type in _NON_ABRUPT_DOPING:
+        return ValidationStatus.NUMERICAL_ONLY
+    return ValidationStatus.UNAVAILABLE
+
+
 def _metric(num: float, ana: float, tol: float) -> ValidationMetric:
     if ana == 0:
         rel = abs(num - ana)
@@ -36,6 +52,40 @@ def _metric(num: float, ana: float, tol: float) -> ValidationMetric:
         rel = abs(num - ana) / abs(ana)
         passed = rel < tol
     return ValidationMetric(numeric=num, analytic=ana, rel_error=rel, passed=passed)
+
+
+def shockley_validation_eligible(sim_input: PnSimInput) -> tuple[bool, str]:
+    """Return whether Shockley diode analytic reference applies."""
+    if sim_input.model_type != "drift_diffusion":
+        return False, "Shockley validation requires model_type=drift_diffusion"
+    doping_type = sim_input.doping.type if sim_input.doping else "abrupt"
+    if doping_type != "abrupt":
+        return False, f"Shockley validation requires abrupt doping, got {doping_type}"
+    if sim_input.Vapp <= 0:
+        return False, "Shockley validation requires forward bias Vapp > 0"
+    return True, ""
+
+
+def build_shockley_validation_report(
+    J_numeric: float,
+    sim_input: PnSimInput,
+    *,
+    ideality: float = 1.0,
+    j_tol: float = 2.0,
+) -> PnValidationReport:
+    """Compare terminal current against Shockley diode equation."""
+    material = load_material(sim_input.material, sim_input.temperature_k)
+    Na = sim_input.doping.Na if sim_input.doping and sim_input.doping.Na else sim_input.Na
+    Nd = sim_input.doping.Nd if sim_input.doping and sim_input.doping.Nd else sim_input.Nd
+    Js = shockley_saturation_current(Na, Nd, material, sim_input.Lp, sim_input.Ln)
+    J_ana = shockley_current(sim_input.Vapp, Js, material, ideality)
+    J_m = _metric(J_numeric, J_ana, j_tol)
+    status = ValidationStatus.ANALYTIC_PASSED if J_m.passed else ValidationStatus.ANALYTIC_FAILED
+    return PnValidationReport(
+        status=status,
+        reason="shockley_diode",
+        all_passed=J_m.passed,
+    )
 
 
 def build_validation_report(
@@ -76,6 +126,22 @@ def unavailable_validation_report(reason: str) -> PnValidationReport:
         reason=reason,
         all_passed=False,
     )
+
+
+def numerical_only_validation_report(reason: str) -> PnValidationReport:
+    """Non-abrupt doping — compare against frozen reference metrics, not abrupt analytic."""
+    return PnValidationReport(
+        status=ValidationStatus.NUMERICAL_ONLY,
+        reason=reason,
+        all_passed=False,
+    )
+
+
+def skipped_validation_report(sim_input: PnSimInput, reason: str) -> PnValidationReport:
+    """Build appropriate skip report for ineligible analytic validation."""
+    if validation_skip_kind(sim_input, reason) == ValidationStatus.NUMERICAL_ONLY:
+        return numerical_only_validation_report(reason)
+    return unavailable_validation_report(reason)
 
 
 def validation_run_passed(report: PnValidationReport | None) -> bool:

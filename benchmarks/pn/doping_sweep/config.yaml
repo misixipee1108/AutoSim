@@ -1,0 +1,15 @@
+model_type: poisson
+material: Si
+Nx: 200
+Vapp: 0.0
+tol: 5.0e-4
+max_iter: 300
+damping: 0.5
+doping_sweep:
+  enabled: true
+  pairs:
+    - {Na: 1.0e17, Nd: 1.0e15}
+    - {Na: 1.0e18, Nd: 1.0e16}
+    - {Na: 1.0e18, Nd: 1.0e15}
+sources:
+  - "Sze & Ng (2012) Ch. 2 built-in potential vs doping"

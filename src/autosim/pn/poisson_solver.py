@@ -244,6 +244,8 @@ def solve_pn_poisson(
         adaptive_damping=solver_spec.adaptive_damping if solver_spec else False,
         conv_ctx=conv_ctx,
         conv_spec=conv_spec,
+        linear_backend=solver_spec.linear_backend if solver_spec else "direct",
+        checkpoint_dir=solver_spec.checkpoint_dir if solver_spec else None,
     )
 
     if stop_reason == "solver_switch_requested":
@@ -261,6 +263,8 @@ def solve_pn_poisson(
             adaptive_damping=True,
             conv_ctx=conv_ctx,
             conv_spec=conv_spec,
+            linear_backend=solver_spec.linear_backend if solver_spec else "direct",
+            checkpoint_dir=solver_spec.checkpoint_dir if solver_spec else None,
         )
 
     if agent_stop["flag"] and not converged:

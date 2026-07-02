@@ -1,6 +1,6 @@
 import ReactECharts from 'echarts-for-react';
 import type { ProfileSeries } from '../../types';
-import { useLocale, tSeries } from '../../i18n';
+import { useLocale, tSeries, resolveAxisLabel } from '../../i18n';
 import { useChartTheme } from '../../hooks/useChartTheme';
 
 interface Props {
@@ -33,7 +33,7 @@ export function LineProfileChart({ series, logScale = false, height = '100%' }: 
     legend: { data: labeled.map((s) => s.label), textStyle: { color: ct.legendColor, fontSize: 11 } },
     xAxis: {
       type: 'value',
-      name: series[0].x_label ?? t('chart.axisX'),
+      name: series[0].x_label ? resolveAxisLabel(series[0].x_label) : t('chart.axisX'),
       nameTextStyle: { color: ct.axisNameColor, fontSize: 10 },
       axisLine: { lineStyle: { color: ct.axisLineColor } },
       axisLabel: { color: ct.axisColor, fontSize: 10 },

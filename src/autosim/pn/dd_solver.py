@@ -9,8 +9,9 @@ from scipy.sparse import diags
 from scipy.sparse.linalg import spsolve
 
 from autosim.materials.loader import load_material
-from autosim.pn.analytical import contact_potentials, depletion_psi_profile
+from autosim.pn.analytical import bernoulli_b, contact_potentials, depletion_psi_profile
 from autosim.pn.breakdown import breakdown_assessment
+from autosim.pn.validation import build_shockley_validation_report, shockley_validation_eligible
 from autosim.pn.doping.factory import build_doping_array, bulk_doping_concentrations, get_doping_profile
 from autosim.pn.mesh import build_mesh
 from autosim.pn.poisson_solver import solve_pn_poisson
@@ -38,6 +39,9 @@ def _solve_carrier_line(
     C: np.ndarray,
     R: np.ndarray,
     is_electron: bool,
+    n_old: np.ndarray | None = None,
+    p_old: np.ndarray | None = None,
+    dt: float | None = None,
 ) -> np.ndarray:
     """Tridiagonal solve for n or p with drift-diffusion flux (upwind) and recombination."""
     N = len(psi)
@@ -72,6 +76,11 @@ def _solve_carrier_line(
         lower[i - 1] = diff_m + min(gm, 0.0)
         upper[i] = diff_p + max(gp, 0.0)
         rhs[i] = -q * R[i] * dx_avg
+        if dt is not None and dt > 0:
+            carrier_old = n_old if is_electron else p_old
+            if carrier_old is not None:
+                rhs[i] += q * carrier_old[i] / dt * dx_avg
+                diag[i] -= q / dt * dx_avg
 
     diag[0] = 1.0
     diag[-1] = 1.0
@@ -81,19 +90,60 @@ def _solve_carrier_line(
     return spsolve(J, rhs)
 
 
+def _sg_flux(
+    n_i: float,
+    n_ip1: float,
+    p_i: float,
+    p_ip1: float,
+    psi_i: float,
+    psi_ip1: float,
+    dx: float,
+    mu_n: float,
+    mu_p: float,
+    Vt: float,
+    q: float,
+) -> tuple[float, float]:
+    """Scharfetter-Gummel flux at interface i+1/2."""
+    dpsi = (psi_ip1 - psi_i) / Vt
+    Bp = bernoulli_b(dpsi)
+    Bm = bernoulli_b(-dpsi)
+    Jn = q * mu_n * Vt / dx * (n_ip1 * Bp - n_i * Bm)
+    Jp = q * mu_p * Vt / dx * (p_i * Bm - p_ip1 * Bp)
+    return float(Jn), float(Jp)
+
+
+def _current_continuity_error(x: np.ndarray, psi: np.ndarray, n: np.ndarray, p: np.ndarray, material) -> float:
+    """Max relative variation of SG total current along the mesh."""
+    if len(x) < 3:
+        return 0.0
+    q, Vt = material.q, material.Vt
+    mu_n, mu_p = material.mu_n, material.mu_p
+    currents: list[float] = []
+    for i in range(len(x) - 1):
+        Jn, Jp = _sg_flux(
+            n[i], n[i + 1], p[i], p[i + 1],
+            psi[i], psi[i + 1], x[i + 1] - x[i],
+            mu_n, mu_p, Vt, q,
+        )
+        currents.append(Jn + Jp)
+    if not currents:
+        return 0.0
+    j_ref = max(abs(currents[0]), 1e-30)
+    return float(max(abs(j - currents[0]) / j_ref for j in currents[1:]))
+
+
 def _terminal_current(
     x: np.ndarray, psi: np.ndarray, n: np.ndarray, p: np.ndarray, material
 ) -> float:
-    E = electric_field(psi, x)
-    mu_n, mu_p = material.mu_n, material.mu_p
-    q, Vt = material.q, material.Vt
-    if len(x) < 3:
+    """Terminal current via Scharfetter-Gummel flux at the right contact interface."""
+    if len(x) < 2:
         return 0.0
     idx = len(x) - 2
-    dn = (n[idx + 1] - n[idx]) / (x[idx + 1] - x[idx])
-    dp = (p[idx + 1] - p[idx]) / (x[idx + 1] - x[idx])
-    Jn = q * mu_n * (n[idx] * E[idx] - Vt * dn)
-    Jp = q * mu_p * (p[idx] * E[idx] + Vt * dp)
+    Jn, Jp = _sg_flux(
+        n[idx], n[idx + 1], p[idx], p[idx + 1],
+        psi[idx], psi[idx + 1], x[idx + 1] - x[idx],
+        material.mu_n, material.mu_p, material.Vt, material.q,
+    )
     return float(Jn + Jp)
 
 
@@ -174,6 +224,9 @@ def solve_dd_gummel(
 
     rho = space_charge(n, p, C, material.q)
     J = _terminal_current(x, psi, n, p, material)
+    cc_err = _current_continuity_error(x, psi, n, p, material)
+    if all_probes:
+        all_probes[-1].current_continuity_error = cc_err
     bd = breakdown_assessment(electric_field(psi, x), x, sim_input.breakdown, J)
     if bd["breakdown_risk"]:
         J = float(bd["J_mult"])
@@ -188,6 +241,9 @@ def solve_dd_gummel(
     )
     result.model_type = "drift_diffusion"
     result.J_terminal = J
+    eligible, _ = shockley_validation_eligible(sim_input)
+    if eligible and J is not None:
+        result.validation = build_shockley_validation_report(J, sim_input)
     result.M_ionization = float(bd["M_ionization"])
     result.breakdown_risk = bool(bd["breakdown_risk"])
     R, rstats = total_recombination(n, p, material.ni, sim_input.recombination)

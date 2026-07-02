@@ -4,13 +4,15 @@
       "optionsHelp": {
         "poisson": "Self-consistent nonlinear Poisson; computes ψ(x) with Boltzmann carrier statistics.",
         "depletion": "Depletion approximation; fast analytic-like solve, ignores mobile carriers in bulk.",
-        "drift_diffusion": "Drift–diffusion via Gummel iteration; couples Poisson with carrier continuity."
+        "drift_diffusion": "Drift–diffusion via Gummel iteration; couples Poisson with carrier continuity.",
+        "transient_dd": "Transient drift–diffusion with time-varying bias and backward-Euler carrier updates."
       }
     },
     "material": {
       "optionsHelp": {
         "Si": "Silicon: Eg ≈ 1.12 eV at 300 K; default for most PN demos.",
-        "Ge": "Germanium: smaller bandgap; higher intrinsic carrier density at room temperature."
+        "Ge": "Germanium: smaller bandgap; higher intrinsic carrier density at room temperature.",
+        "GaAs": "Gallium arsenide: direct bandgap; used for high-speed device demos."
       }
     },
     "doping.type": {
@@ -18,7 +20,16 @@
         "abrupt": "Step junction: constant Na on P-side, Nd on N-side.",
         "linear_graded": "Linear grading of net doping across the transition region.",
         "gaussian": "Gaussian doping profile centered at the metallurgical junction.",
+        "erfc": "Complementary error function profile for diffused junctions.",
         "piecewise": "User-defined piecewise or tabulated doping profile."
+      }
+    },
+    "optimization.method": {
+      "optionsHelp": {
+        "random": "Random sampling over design variable bounds.",
+        "grid": "Structured grid over design variables.",
+        "optuna": "Bayesian optimization via Optuna (optional dependency).",
+        "genetic": "Lightweight genetic algorithm over design variables."
       }
     },
     "solver.method": {
@@ -31,7 +42,7 @@
     "solver.linear_backend": {
       "optionsHelp": {
         "direct": "Sparse direct LU; robust for 1D meshes up to a few thousand nodes.",
-        "iterative": "Iterative linear solver; useful for very large systems (future 2D/3D)."
+        "iterative": "BiCGSTAB iterative solver; useful for very large 1D meshes."
       }
     },
     "agent.backend": {
@@ -46,6 +57,28 @@
         "recommend_next": "Stop when the agent emits a recommend_next decision.",
         "never": "Run all trials regardless of agent recommendations."
       }
+    }
+  },
+  "vizOptions": {
+    "potential": {
+      "label": "Potential ψ(x)",
+      "description": "Electrostatic potential along the junction."
+    },
+    "electric_field": {
+      "label": "Electric Field E(x)",
+      "description": "Electric field magnitude from potential gradient."
+    },
+    "carriers": {
+      "label": "Carrier Densities n(x), p(x)",
+      "description": "Electron and hole concentrations (log scale)."
+    },
+    "charge_density": {
+      "label": "Charge Density ρ(x)",
+      "description": "Space charge density profile."
+    },
+    "convergence": {
+      "label": "Newton Convergence",
+      "description": "Scaled residual and step size vs iteration."
     }
   }
 }

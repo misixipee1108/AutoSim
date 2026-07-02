@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Callable
 
 import numpy as np
-from scipy.sparse.linalg import spsolve
+from autosim.pn.solvers.linear import solve_linear_system
+from autosim.pn.solvers.checkpoint import load_checkpoint, save_checkpoint
 
 from autosim.pn.convergence import (
     ConvergenceContext,
@@ -65,6 +66,18 @@ def _classify_failure(probe_data: dict, conv_result, conv_spec: ConvergenceSpec)
     return "unknown"
 
 
+def _recommend_action(failure_reason: str) -> str:
+    mapping = {
+        "exp_overflow": "increase_damping",
+        "unphysical_carriers": "change_initial_guess",
+        "ill_conditioned": "refine_mesh",
+        "stalled": "increase_damping",
+        "bias_too_large": "reduce_bias_step",
+        "unknown": "switch_solver",
+    }
+    return mapping.get(failure_reason, "switch_solver")
+
+
 def _interior_delta_norm(delta: np.ndarray) -> float:
     if len(delta) <= 2:
         return float(np.linalg.norm(delta, ord=np.inf))
@@ -95,11 +108,17 @@ class DampedNewtonSolver:
         adaptive_damping: bool = False,
         conv_ctx: ConvergenceContext | None = None,
         conv_spec: ConvergenceSpec | None = None,
+        linear_backend: str = "direct",
+        checkpoint_dir: str | None = None,
     ) -> tuple[np.ndarray, list[PnNewtonProbe], bool, str]:
         if conv_ctx is None or conv_spec is None:
             raise ValueError("conv_ctx and conv_spec are required")
 
         psi = psi0.copy()
+        if checkpoint_dir:
+            restored = load_checkpoint(checkpoint_dir)
+            if restored is not None and len(restored) == len(psi):
+                psi = restored.copy()
         probes: list[PnNewtonProbe] = []
         prev_scaled_residual: float | None = None
         stall_count = 0
@@ -109,7 +128,7 @@ class DampedNewtonSolver:
         for it in range(max_iter):
             F, J, extra = residual_fn(psi)
             residual_norm = interior_inf_norm(F)
-            delta = spsolve(J, -F)
+            delta = solve_linear_system(J, -F, backend=linear_backend)
             delta_norm = _interior_delta_norm(delta)
 
             conv_result = check_convergence(conv_ctx, residual_norm, delta_norm, conv_spec)
@@ -164,6 +183,11 @@ class DampedNewtonSolver:
             else:
                 status = "iterating"
 
+            fail_reason = (
+                _classify_failure(probe_data, conv_result, conv_spec)
+                if status.startswith("failed") or status == "stalled"
+                else ""
+            )
             probe = PnNewtonProbe(
                 iteration=it,
                 residual_norm=residual_norm,
@@ -190,13 +214,15 @@ class DampedNewtonSolver:
                 exp_clamped=extra.get("exp_clamped", False),
                 stalled=stall_count >= 15,
                 convergence_status=status,
-                failure_reason=_classify_failure(probe_data, conv_result, conv_spec)
-                if status.startswith("failed") or status == "stalled"
-                else "",
+                failure_reason=fail_reason,
+                recommended_numerical_action=_recommend_action(fail_reason) if fail_reason else "",
                 convergence_risk_score=probe_data["convergence_risk_score"],
                 mesh_quality_indicator=mesh_quality,
             )
             probes.append(probe)
+
+            if checkpoint_dir and it % 5 == 0:
+                save_checkpoint(checkpoint_dir, psi, iteration=it)
 
             if on_probe is not None:
                 on_probe(probe)
@@ -204,6 +230,8 @@ class DampedNewtonSolver:
             if is_nan or is_unphysical:
                 return psi, probes, False, probe.failure_reason or "unphysical"
             if conv_result.converged:
+                if checkpoint_dir:
+                    save_checkpoint(checkpoint_dir, psi, iteration=it)
                 return psi, probes, True, "converged"
             if stall_count >= 25 and scaled_residual > conv_spec.relative_tol * 200:
                 return psi, probes, False, "Newton iteration stalled"
@@ -225,6 +253,7 @@ class DampedNewtonSolver:
 
         probe.convergence_status = "not_converged"
         probe.failure_reason = _classify_failure(probe_data, conv_result, conv_spec)
+        probe.recommended_numerical_action = _recommend_action(probe.failure_reason)
         return psi, probes, False, "max_iter_reached"
 
 
@@ -235,7 +264,7 @@ class NewtonSolver(DampedNewtonSolver):
 class NewtonLineSearchSolver(DampedNewtonSolver):
     name = "newton_line_search"
 
-    def solve(self, psi0, residual_fn, tol, max_iter, damping, on_probe, mesh_quality=1.0, adaptive_damping=True, conv_ctx=None, conv_spec=None):
+    def solve(self, psi0, residual_fn, tol, max_iter, damping, on_probe, mesh_quality=1.0, adaptive_damping=True, conv_ctx=None, conv_spec=None, linear_backend="direct", checkpoint_dir=None):
         return super().solve(
             psi0,
             residual_fn,
@@ -247,4 +276,6 @@ class NewtonLineSearchSolver(DampedNewtonSolver):
             adaptive_damping=True,
             conv_ctx=conv_ctx,
             conv_spec=conv_spec,
+            linear_backend=linear_backend,
+            checkpoint_dir=checkpoint_dir,
         )

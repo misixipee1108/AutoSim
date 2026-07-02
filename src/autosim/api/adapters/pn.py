@@ -13,6 +13,7 @@ from autosim.api.schemas import (
     RunStatus,
     ScalarMetric,
     SweepSeries,
+    TimeSeries,
     TrialSummary,
     UnifiedAction,
     UnifiedAgentDecision,
@@ -222,6 +223,16 @@ class PnAdapter:
                     timestamp=ts,
                 )
             )
+        if raw.recommended_numerical_action:
+            probes.append(
+                UnifiedProbe(
+                    name="recommended_numerical_action",
+                    label=f"Recommended: {raw.recommended_numerical_action}",
+                    type="scalar",
+                    value=None,
+                    timestamp=ts,
+                )
+            )
         return probes
 
     def normalize_decision(self, raw: PnAgentDecision) -> UnifiedAgentDecision:
@@ -277,7 +288,67 @@ class PnAdapter:
                     y_label="J (A/cm²)",
                 )
             )
+        if any(p.Cj_diff is not None for p in sweep.points):
+            series.append(
+                SweepSeries(
+                    name="C_vs_Vapp",
+                    label="Differential Capacitance vs Bias",
+                    unit="F/cm²",
+                    x=vapp,
+                    y=[p.Cj_diff or 0.0 for p in sweep.points],
+                    y_label="C (F/cm²)",
+                )
+            )
+        if any(p.M is not None for p in sweep.points):
+            series.append(
+                SweepSeries(
+                    name="M_vs_Vapp",
+                    label="Impact Ionization M vs Bias",
+                    unit="",
+                    x=vapp,
+                    y=[p.M or 1.0 for p in sweep.points],
+                    y_label="M",
+                )
+            )
         return series
+
+    @staticmethod
+    def _time_series(raw: PnTrialResult) -> list[TimeSeries]:
+        if not raw.time_series:
+            return []
+        ts = [float(p.get("t", 0.0)) for p in raw.time_series]
+        out: list[TimeSeries] = []
+        if any("J" in p for p in raw.time_series):
+            out.append(
+                TimeSeries(
+                    name="J_vs_t",
+                    label="Terminal Current vs Time",
+                    unit="A/cm²",
+                    t=ts,
+                    y=[float(p.get("J") or 0.0) for p in raw.time_series],
+                )
+            )
+        if any("Vapp" in p for p in raw.time_series):
+            out.append(
+                TimeSeries(
+                    name="Vapp_vs_t",
+                    label="Applied Bias vs Time",
+                    unit="V",
+                    t=ts,
+                    y=[float(p.get("Vapp") or 0.0) for p in raw.time_series],
+                )
+            )
+        if any("psi_mid" in p for p in raw.time_series):
+            out.append(
+                TimeSeries(
+                    name="psi_mid_vs_t",
+                    label="Midpoint Potential vs Time",
+                    unit="V",
+                    t=ts,
+                    y=[float(p.get("psi_mid") or 0.0) for p in raw.time_series],
+                )
+            )
+        return out
 
     def normalize_result(
         self,
@@ -294,14 +365,16 @@ class PnAdapter:
         )
         run_status = RunStatus(run_status_to_api(run_status_str))
 
-        xs = [p.x for p in raw.profile]
-        profiles = [
-            ProfileSeries(name="potential", label="Potential ψ(x)", unit="V", x=xs, y=[p.psi for p in raw.profile], x_label="x (cm)"),
-            ProfileSeries(name="electric_field", label="Electric Field E(x)", unit="V/cm", x=xs, y=[p.E for p in raw.profile], x_label="x (cm)"),
-            ProfileSeries(name="electron_density", label="Electron n(x)", unit="cm⁻³", x=xs, y=[p.n for p in raw.profile], x_label="x (cm)"),
-            ProfileSeries(name="hole_density", label="Hole p(x)", unit="cm⁻³", x=xs, y=[p.p for p in raw.profile], x_label="x (cm)"),
-            ProfileSeries(name="charge_density", label="Charge ρ(x)", unit="C/cm³", x=xs, y=[p.rho for p in raw.profile], x_label="x (cm)"),
-        ]
+        xs = [p.x for p in raw.profile] if raw.profile else []
+        profiles: list[ProfileSeries] = []
+        if raw.profile:
+            profiles = [
+                ProfileSeries(name="potential", label="Potential ψ(x)", unit="V", x=xs, y=[p.psi for p in raw.profile], x_label="x (cm)"),
+                ProfileSeries(name="electric_field", label="Electric Field E(x)", unit="V/cm", x=xs, y=[p.E for p in raw.profile], x_label="x (cm)"),
+                ProfileSeries(name="electron_density", label="Electron n(x)", unit="cm⁻³", x=xs, y=[p.n for p in raw.profile], x_label="x (cm)"),
+                ProfileSeries(name="hole_density", label="Hole p(x)", unit="cm⁻³", x=xs, y=[p.p for p in raw.profile], x_label="x (cm)"),
+                ProfileSeries(name="charge_density", label="Charge ρ(x)", unit="C/cm³", x=xs, y=[p.rho for p in raw.profile], x_label="x (cm)"),
+            ]
         conv = [
             ConvergenceSeries(
                 name="residual",
@@ -349,6 +422,15 @@ class PnAdapter:
             scalars["Cj"] = ScalarMetric(value=raw.Cj_estimate, unit="F/cm²", label="Junction Capacitance")
         if raw.J_terminal is not None:
             scalars["J"] = ScalarMetric(value=raw.J_terminal, unit="A/cm²", label="Terminal Current")
+        if raw.M_ionization is not None:
+            scalars["M_ionization"] = ScalarMetric(
+                value=raw.M_ionization, unit="", label="Impact Ionization M"
+            )
+        scalars["breakdown_risk"] = ScalarMetric(
+            value=1.0 if raw.breakdown_risk else 0.0,
+            unit="",
+            label="Breakdown Risk",
+        )
         scalars["newton_iterations"] = ScalarMetric(value=float(raw.newton_iterations), unit="", label="Newton Iterations")
         if latest is not None:
             scalars["final_residual_norm"] = ScalarMetric(
@@ -448,6 +530,7 @@ class PnAdapter:
             trial_index=raw.trial_index,
             scalars=scalars,
             profiles=profiles,
+            time_series=self._time_series(raw),
             convergence=conv,
             sweep=self._sweep_series(sweep),
             probes=probes,

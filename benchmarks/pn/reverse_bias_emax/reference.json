@@ -1,4 +1,8 @@
 {
+  "case_id": "reverse_bias_emax",
+  "description": "Reverse bias peak electric field",
+  "validation_mode": "analytic_abrupt",
+  "category": "bias",
   "metrics": {
     "Emax": 75000
   },

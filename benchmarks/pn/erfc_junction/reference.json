@@ -1,5 +1,8 @@
 {
-  "converged": true,
+  "case_id": "erfc_junction",
+  "description": "Erfc diffused junction — frozen numerical reference only",
+  "validation_mode": "numerical_only",
+  "category": "doping",
   "metrics": {
     "Vbi": 0.88,
     "W": 0.0006
@@ -7,5 +10,6 @@
   "tolerances": {
     "Vbi": 0.5,
     "W": 0.95
-  }
+  },
+  "converged": true
 }

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-import { useLocale, tModel, tRuntime } from '../../i18n';
+import { useLocale, tRuntime, resolveValidationReason, inferModelIdFromProject, resolveProjectTitle } from '../../i18n';
 
 const RUN_STATUS_CLASS: Record<string, string> = {
   pending: 'status-pending',
@@ -41,16 +41,24 @@ export function SolverStatusPanel() {
   const runId = useAppStore((s) => s.runId);
   const isRunning = useAppStore((s) => s.isRunning);
   const runResult = useAppStore((s) => s.runResult);
-  const descriptor = useAppStore((s) => s.currentDescriptor);
+  const currentProject = useAppStore((s) => s.currentProject);
 
-  const modelLabel = descriptor
-    ? tModel(descriptor.model_id, 'name', descriptor.model_name)
+  const modelLabel = currentProject
+    ? resolveProjectTitle(
+        currentProject.project_id,
+        currentProject.title,
+        inferModelIdFromProject(currentProject),
+      )
     : t('solver.empty');
 
   const runStatusKey = runResult?.run_status ?? runStatus ?? null;
   const solverStatusKey = runResult?.solver_status ?? null;
   const validationStatusKey = runResult?.validation_status ?? null;
   const conv = runResult?.convergence_summary;
+  const validationHint = runResult?.validation_reason
+    ? resolveValidationReason(runResult.validation_reason)
+    : undefined;
+  const solverWarnings = conv?.solver_warnings?.map((w) => resolveValidationReason(w)) ?? [];
 
   return (
     <div className="border-b border-default">
@@ -75,7 +83,7 @@ export function SolverStatusPanel() {
           statusKey={validationStatusKey}
           ns="validationStatus"
           classMap={VALIDATION_STATUS_CLASS}
-          hint={runResult?.validation_reason ?? undefined}
+          hint={validationHint}
         />
         <Row
           label={t('solver.running')}
@@ -118,10 +126,10 @@ export function SolverStatusPanel() {
               label={t('convergence.criterionMet')}
               value={tRuntime(`convergenceMet.${conv.criterion_met}`, conv.criterion_met)}
             />
-            {conv.solver_warnings && conv.solver_warnings.length > 0 && (
+            {solverWarnings.length > 0 && (
               <Row
                 label={t('convergence.warnings')}
-                value={conv.solver_warnings.join(', ')}
+                value={solverWarnings.join(', ')}
               />
             )}
           </div>

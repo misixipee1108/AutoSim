@@ -1,5 +1,8 @@
 {
+  "case_id": "recombination_equilibrium",
+  "description": "DD with SRH recombination Gummel converges or produces J",
+  "validation_mode": "validation_unavailable",
+  "category": "drift_diffusion",
   "converged": true,
-  "allow_partial_converged": true,
-  "description": "DD with SRH recombination Gummel converges or produces J"
+  "allow_partial_converged": true
 }

@@ -1,5 +1,8 @@
 {
-  "description": "Depletion analytic mode",
+  "case_id": "depletion_vs_poisson",
+  "description": "Depletion analytic mode vs Poisson numeric consistency",
+  "validation_mode": "analytic_abrupt",
+  "category": "validation",
   "metrics": {
     "Vbi": 0.835,
     "W": 3.3e-5
